@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, SECTORS } from '@lm/contracts';
+import { ACCOUNT_TYPES, COLLAB_EVENTS, COLLAB_STATES, SECTORS } from '@lm/contracts';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -32,6 +32,10 @@ const vector = customType<{ data: number[]; driverData: string }>({
 export const accountType = pgEnum('account_type', ACCOUNT_TYPES);
 export const sector = pgEnum('sector', SECTORS);
 export const memberRole = pgEnum('member_role', ['owner', 'admin', 'member']);
+export const collabState = pgEnum('collab_state', COLLAB_STATES);
+export const collabEvent = pgEnum('collab_event', COLLAB_EVENTS);
+export const actorKind = pgEnum('actor_kind', ['brand', 'creator', 'system']);
+export const campaignSource = pgEnum('campaign_source', ['ai', 'url', 'document']);
 
 export const users = pgTable(
   'user',
@@ -189,4 +193,83 @@ export const linkedinSnapshots = pgTable(
     fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow()
   },
   (t) => [index('linkedin_snapshots_url_idx').on(t.profileUrl, t.fetchedAt)]
+);
+
+export const campaigns = pgTable(
+  'campaigns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    brandId: uuid('brand_id')
+      .notNull()
+      .references(() => brands.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    objective: text('objective').notNull(),
+    keyMessages: jsonb('key_messages').$type<string[]>().notNull().default([]),
+    doNot: jsonb('do_not').$type<string[]>().notNull().default([]),
+    deliverable: text('deliverable').notNull(),
+    budgetMinMinor: bigint('budget_min_minor', { mode: 'number' }).notNull(),
+    budgetMaxMinor: bigint('budget_max_minor', { mode: 'number' }).notNull(),
+    source: campaignSource('source').notNull(),
+    sourceRef: text('source_ref'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    index('campaigns_brand_idx').on(t.brandId),
+    check('campaigns_budget_order', sql`${t.budgetMinMinor} <= ${t.budgetMaxMinor}`)
+  ]
+);
+
+export const collaborations = pgTable(
+  'collaborations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    reference: text('reference').notNull(),
+    campaignId: uuid('campaign_id')
+      .notNull()
+      .references(() => campaigns.id, { onDelete: 'cascade' }),
+    creatorId: uuid('creator_id')
+      .notNull()
+      .references(() => creators.id, { onDelete: 'cascade' }),
+    state: collabState('state').notNull().default('invited'),
+    feeMinor: bigint('fee_minor', { mode: 'number' }).notNull(),
+    counterFeeMinor: bigint('counter_fee_minor', { mode: 'number' }),
+    counterRounds: integer('counter_rounds').notNull().default(0),
+    lastCounterBy: actorKind('last_counter_by'),
+    trackedLink: text('tracked_link'),
+    postUrl: text('post_url'),
+    draft: text('draft'),
+    publishBy: timestamp('publish_by', { withTimezone: true }),
+    invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp('responded_at', { withTimezone: true }),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    uniqueIndex('collaborations_reference_key').on(t.reference),
+    uniqueIndex('collaborations_campaign_creator_key').on(t.campaignId, t.creatorId),
+    index('collaborations_creator_idx').on(t.creatorId, t.state),
+    check('collaborations_fee_nonneg', sql`${t.feeMinor} >= 0`),
+    check('collaborations_rounds_capped', sql`${t.counterRounds} between 0 and 3`),
+    check(
+      'collaborations_published_needs_link',
+      sql`${t.state} not in ('published', 'verified', 'paid') or ${t.trackedLink} is not null`
+    )
+  ]
+);
+
+export const collaborationEvents = pgTable(
+  'collaboration_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    collaborationId: uuid('collaboration_id')
+      .notNull()
+      .references(() => collaborations.id, { onDelete: 'cascade' }),
+    event: collabEvent('event').notNull(),
+    actor: actorKind('actor').notNull(),
+    actorUserId: text('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    fromState: collabState('from_state').notNull(),
+    toState: collabState('to_state').notNull(),
+    payload: jsonb('payload'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('collaboration_events_collab_idx').on(t.collaborationId, t.createdAt)]
 );
