@@ -1,20 +1,18 @@
-import type { Message } from '@lm/contracts';
-
 export type RoomId = string;
-export type Subscriber = (message: Message) => void;
+export type Subscriber<T> = (payload: T) => void;
 export type Unsubscribe = () => void;
 
-export interface Broker {
-  subscribe(room: RoomId, subscriber: Subscriber): Unsubscribe;
-  publish(room: RoomId, message: Message): Promise<void>;
+export interface Broker<T> {
+  subscribe(room: RoomId, subscriber: Subscriber<T>): Unsubscribe;
+  publish(room: RoomId, payload: T): Promise<void>;
   size(room: RoomId): number;
   close(): Promise<void>;
 }
 
-export class InProcessBroker implements Broker {
-  private readonly rooms = new Map<RoomId, Set<Subscriber>>();
+export class InProcessBroker<T> implements Broker<T> {
+  private readonly rooms = new Map<RoomId, Set<Subscriber<T>>>();
 
-  subscribe(room: RoomId, subscriber: Subscriber): Unsubscribe {
+  subscribe(room: RoomId, subscriber: Subscriber<T>): Unsubscribe {
     let members = this.rooms.get(room);
     if (!members) {
       members = new Set();
@@ -30,13 +28,13 @@ export class InProcessBroker implements Broker {
     };
   }
 
-  async publish(room: RoomId, message: Message) {
+  async publish(room: RoomId, payload: T) {
     const members = this.rooms.get(room);
     if (!members) return;
 
     for (const subscriber of [...members]) {
       try {
-        subscriber(message);
+        subscriber(payload);
       } catch {
         members.delete(subscriber);
       }

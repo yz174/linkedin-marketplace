@@ -22,11 +22,12 @@ import {
   resolveParticipant,
   type Participant
 } from './service';
+import { readTicket } from './ticket';
 
 const SEND_WINDOW_MS = 10_000;
 const SEND_LIMIT_PER_WINDOW = 30;
 
-type Query = { after?: string };
+type Query = { after?: string; ticket?: string };
 type Params = { id: string };
 
 declare module 'fastify' {
@@ -35,23 +36,47 @@ declare module 'fastify' {
   }
 }
 
-export function registerMessageSocket(app: FastifyInstance, broker: Broker) {
+export function registerMessageSocket(app: FastifyInstance, broker: Broker<Message>) {
+  const open = new Set<WebSocket>();
+  const writing = new Set<Promise<void>>();
+
+  app.addHook('onClose', async () => {
+    for (const socket of open) {
+      try {
+        socket.close(CloseCode.serverShutdown, 'server shutting down');
+        socket.terminate();
+      } catch {
+        socket.terminate();
+      }
+    }
+    open.clear();
+    await Promise.allSettled([...writing]);
+    writing.clear();
+  });
+
   app.get<{ Params: Params; Querystring: Query }>(
     '/ws/collaborations/:id',
     {
       websocket: true,
-      preValidation: async (request: FastifyRequest<{ Params: Params }>, reply) => {
-        const result = await auth.api.getSession({ headers: toHeaders(request.headers) });
-        if (!result?.user) {
+      preValidation: async (
+        request: FastifyRequest<{ Params: Params; Querystring: Query }>,
+        reply
+      ) => {
+        const identity = await identify(request);
+        if (!identity) {
           return reply.code(401).send({ code: 'not_authenticated', message: 'Sign in to continue.' });
         }
-
-        const accountType = (result.user as { accountType?: 'brand' | 'creator' }).accountType;
-        if (accountType !== 'brand' && accountType !== 'creator') {
-          return reply.code(403).send({ code: 'wrong_account_type', message: 'Unknown account type.' });
+        if (identity.collaborationId && identity.collaborationId !== request.params.id) {
+          return reply
+            .code(403)
+            .send({ code: 'wrong_account_type', message: 'That ticket is for another conversation.' });
         }
 
-        const participant = await resolveParticipant(request.params.id, result.user.id, accountType);
+        const participant = await resolveParticipant(
+          request.params.id,
+          identity.userId,
+          identity.accountType
+        );
         if (!participant) {
           return reply
             .code(404)
@@ -67,9 +92,33 @@ export function registerMessageSocket(app: FastifyInstance, broker: Broker) {
         socket.close(CloseCode.unauthenticated, 'no participant');
         return;
       }
-      void openConnection(socket, participant, parseCursor(request.query.after), broker);
+      open.add(socket);
+      socket.once('close', () => open.delete(socket));
+      void openConnection(socket, participant, parseCursor(request.query.after), broker, writing);
     }
   );
+}
+
+async function identify(request: FastifyRequest<{ Params: Params; Querystring: Query }>) {
+  const raw = request.query.ticket;
+  if (raw) {
+    const ticket = readTicket(raw);
+    return ticket
+      ? {
+          userId: ticket.userId,
+          accountType: ticket.accountType,
+          collaborationId: ticket.collaborationId
+        }
+      : null;
+  }
+
+  const result = await auth.api.getSession({ headers: toHeaders(request.headers) });
+  if (!result?.user) return null;
+
+  const accountType = (result.user as { accountType?: 'brand' | 'creator' }).accountType;
+  if (accountType !== 'brand' && accountType !== 'creator') return null;
+
+  return { userId: result.user.id, accountType, collaborationId: null };
 }
 
 function parseCursor(raw: string | undefined) {
@@ -81,7 +130,8 @@ async function openConnection(
   socket: WebSocket,
   participant: Participant,
   cursor: number,
-  broker: Broker
+  broker: Broker<Message>,
+  writing: Set<Promise<void>>
 ) {
   const room = participant.collaborationId;
 
@@ -173,6 +223,9 @@ async function openConnection(
 
   const enqueueSend = (id: string, body: string) => {
     sendChain = sendChain.then(() => deliver(id, body));
+    const tail = sendChain;
+    writing.add(tail);
+    void tail.finally(() => writing.delete(tail));
   };
 
   const deliver = async (id: string, body: string) => {

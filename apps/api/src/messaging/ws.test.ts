@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { CloseCode, PROTOCOL_VERSION, type ServerFrame } from '@lm/contracts';
 import { creators, users } from '@lm/db';
 import { desc, eq, like } from 'drizzle-orm';
+import net from 'node:net';
 import { WebSocket } from 'ws';
 import { buildApp } from '../app';
 import { db } from '../auth';
@@ -12,6 +13,7 @@ const stamp = Date.now();
 const PASSWORD = 'correct-horse-battery';
 
 let base = '';
+let port = 0;
 let brandCookie = '';
 let creatorCookie = '';
 let outsiderCookie = '';
@@ -52,6 +54,77 @@ function cookieFrom(res: Injected) {
   return list.filter(Boolean).map((c) => String(c).split(';')[0]).join('; ');
 }
 
+function attemptUpgrade(cookie: string, id: string) {
+  const CRLF = '\r\n';
+  return new Promise<{ status: number; body: string }>((resolve) => {
+    const socket = net.connect(port, '127.0.0.1', () => {
+      const head = [
+        `GET /ws/collaborations/${id} HTTP/1.1`,
+        'Host: 127.0.0.1',
+        'Upgrade: websocket',
+        'Connection: Upgrade',
+        'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==',
+        'Sec-WebSocket-Version: 13',
+        ...(cookie ? [`Cookie: ${cookie}`] : []),
+        '',
+        ''
+      ];
+      socket.write(head.join(CRLF));
+    });
+
+    let raw = '';
+    const finish = () => {
+      socket.destroy();
+      const status = Number(/^HTTP.1.1 (\d{3})/.exec(raw)?.[1] ?? 0);
+      const body = raw.split(CRLF + CRLF).slice(1).join(CRLF + CRLF);
+      resolve({ status, body });
+    };
+
+    socket.on('data', (chunk) => {
+      raw += chunk.toString();
+      if (raw.includes(CRLF + CRLF)) finish();
+    });
+    socket.on('error', finish);
+    socket.unref();
+    const guard = setTimeout(finish, 3000);
+    guard.unref?.();
+  });
+}
+
+function attemptUpgradeWithTicket(id: string, ticket: string) {
+  const CRLF = '\r\n';
+  return new Promise<{ status: number }>((resolve) => {
+    const socket = net.connect(port, '127.0.0.1', () => {
+      const head = [
+        `GET /ws/collaborations/${id}?ticket=${encodeURIComponent(ticket)} HTTP/1.1`,
+        'Host: 127.0.0.1',
+        'Upgrade: websocket',
+        'Connection: Upgrade',
+        'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==',
+        'Sec-WebSocket-Version: 13',
+        '',
+        ''
+      ];
+      socket.write(head.join(CRLF));
+    });
+
+    let raw = '';
+    const finish = () => {
+      socket.destroy();
+      resolve({ status: Number(/^HTTP.1.1 (\d{3})/.exec(raw)?.[1] ?? 0) });
+    };
+
+    socket.on('data', (chunk) => {
+      raw += chunk.toString();
+      if (raw.includes(CRLF + CRLF)) finish();
+    });
+    socket.on('error', finish);
+    socket.unref();
+    const guard = setTimeout(finish, 3000);
+    guard.unref?.();
+  });
+}
+
 class Client {
   private readonly socket: WebSocket;
   readonly frames: ServerFrame[] = [];
@@ -79,9 +152,7 @@ class Client {
       };
       client.socket.once('open', () => done(client));
       client.socket.once('unexpected-response', (_req, res) => done({ status: res.statusCode ?? 0 }));
-      client.socket.once('error', () => {
-        setTimeout(() => done({ status: 0 }), 100);
-      });
+      client.socket.once('error', () => done({ status: 0 }));
     });
   }
 
@@ -116,7 +187,7 @@ class Client {
 beforeAll(async () => {
   await app.listen({ port: 0, host: '127.0.0.1' });
   const address = app.server.address();
-  const port = typeof address === 'object' && address ? address.port : 0;
+  port = typeof address === 'object' && address ? address.port : 0;
   base = `ws://127.0.0.1:${port}`;
 
   brandCookie = cookieFrom(
@@ -188,18 +259,27 @@ afterAll(async () => {
   await db.delete(users).where(like(users.email, 'ws%@constraint.test'));
 }, TIMEOUT);
 
-test('an unauthenticated upgrade is refused with 401, no socket is opened', async () => {
+test('an unauthenticated upgrade is refused with 401 before any socket exists', async () => {
   const collabId = await newRoom();
-  const result = await Client.openOrFail('', collabId);
-  expect('status' in result).toBe(true);
-  if ('status' in result) expect(result.status).toBe(401);
+  const { status, body } = await attemptUpgrade('', collabId);
+  expect(status).toBe(401);
+  expect(body).toContain('not_authenticated');
 }, TIMEOUT);
 
 test('a signed-in account that is not a participant is refused with 404', async () => {
   const collabId = await newRoom();
-  const result = await Client.openOrFail(outsiderCookie, collabId);
-  expect('status' in result).toBe(true);
-  if ('status' in result) expect(result.status).toBe(404);
+  const { status, body } = await attemptUpgrade(outsiderCookie, collabId);
+  expect(status).toBe(404);
+  expect(body).toContain('not_found');
+}, TIMEOUT);
+
+test('a rejected upgrade never returns switching protocols', async () => {
+  const collabId = await newRoom();
+  for (const cookie of ['', outsiderCookie]) {
+    const { status } = await attemptUpgrade(cookie, collabId);
+    expect(status).not.toBe(101);
+    expect(status).toBeGreaterThanOrEqual(400);
+  }
 }, TIMEOUT);
 
 test('a participant connects and receives ready before anything else', async () => {
@@ -416,4 +496,53 @@ test('a closed socket stops receiving and frees its room slot', async () => {
 
   expect(client.frames.length).toBe(seen);
   other.close();
+}, TIMEOUT);
+
+test('a signed ticket authenticates an upgrade with no cookie', async () => {
+  const collabId = await newRoom();
+  const issued = await post(`/brand/collaborations/${collabId}/ws-ticket`, {}, brandCookie);
+  expect(issued.statusCode).toBe(200);
+
+  const { ticket } = issued.json<{ ticket: string }>();
+  const socket = new WebSocket(`${base}/ws/collaborations/${collabId}?after=0&ticket=${ticket}`);
+  socket.on('error', () => {});
+
+  const ready = await new Promise<ServerFrame | null>((resolve) => {
+    socket.once('message', (raw) => resolve(JSON.parse(String(raw)) as ServerFrame));
+    socket.once('error', () => resolve(null));
+    setTimeout(() => resolve(null), 6000).unref?.();
+  });
+
+  expect(ready?.t).toBe('ready');
+  socket.close();
+}, TIMEOUT);
+
+test('a ticket for one conversation is refused on another', async () => {
+  const mine = await newRoom();
+  const other = await newRoom();
+  const { ticket } = (await post(`/brand/collaborations/${mine}/ws-ticket`, {}, brandCookie)).json<{
+    ticket: string;
+  }>();
+
+  const { status } = await attemptUpgradeWithTicket(other, ticket);
+  expect(status).toBe(403);
+}, TIMEOUT);
+
+test('a tampered ticket is refused', async () => {
+  const collabId = await newRoom();
+  const { ticket } = (await post(`/brand/collaborations/${collabId}/ws-ticket`, {}, brandCookie)).json<{
+    ticket: string;
+  }>();
+
+  const [body, signature] = ticket.split('.') as [string, string];
+  const forged = `${body}.${signature.slice(0, -2)}xy`;
+
+  const { status } = await attemptUpgradeWithTicket(collabId, forged);
+  expect(status).toBe(401);
+}, TIMEOUT);
+
+test('a ticket is refused to an account that is not a participant', async () => {
+  const collabId = await newRoom();
+  const res = await post(`/creator/collaborations/${collabId}/ws-ticket`, {}, outsiderCookie);
+  expect(res.statusCode).toBe(404);
 }, TIMEOUT);
