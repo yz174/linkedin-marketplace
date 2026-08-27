@@ -1,0 +1,20 @@
+{
+  "name": "linkedin-marketplace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test packages",
+    "db:generate": "cd packages/db && bun run generate",
+    "db:migrate": "cd packages/db && bun run migrate",
+    "db:seed": "cd packages/db && bun run seed"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.2"
+  }
+}
