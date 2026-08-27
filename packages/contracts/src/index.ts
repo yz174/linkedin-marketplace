@@ -3,6 +3,7 @@ export * from './account';
 export * from './brand';
 export * from './creator';
 export * from './match';
+export * from './campaign';
 export * from './collaboration';
 export * from './messaging';
 export * from './events';

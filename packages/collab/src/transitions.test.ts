@@ -232,3 +232,42 @@ test('allowedEvents hides publish until a tracked link exists', () => {
     allowedEvents(at('scheduled', { trackedLink: 'x', postUrl: 'y' }), 'creator')
   ).toContain('publish');
 });
+
+test('an accepted assignment that never publishes expires and refunds the hold', () => {
+  const accepted = { state: 'accepted', counterRounds: 1, trackedLink: null, postUrl: null, lastCounterBy: null } as const;
+  const outcome = transition(accepted, { event: 'expire', actor: 'system' });
+
+  expect(outcome.ok).toBe(true);
+  expect(outcome.ok && outcome.to).toBe('expired');
+  expect(outcome.ok && outcome.effects).toContain('refund_escrow');
+});
+
+test('an unanswered invitation expires without a refund, because nothing was held', () => {
+  const invited = { state: 'invited', counterRounds: 0, trackedLink: null, postUrl: null, lastCounterBy: null } as const;
+  const outcome = transition(invited, { event: 'expire', actor: 'system' });
+
+  expect(outcome.ok).toBe(true);
+  expect(outcome.ok && outcome.to).toBe('expired');
+  expect(outcome.ok && outcome.effects).toEqual([]);
+});
+
+test('a published post is past the clock and cannot be expired', () => {
+  const published = { state: 'published', counterRounds: 0, trackedLink: 'lpwk.co/x', postUrl: 'https://x.test/p', lastCounterBy: null } as const;
+  const outcome = transition(published, { event: 'expire', actor: 'system' });
+
+  expect(outcome.ok).toBe(false);
+});
+
+test('only the system expires an assignment', () => {
+  const accepted = { state: 'accepted', counterRounds: 0, trackedLink: null, postUrl: null, lastCounterBy: null } as const;
+
+  expect(transition(accepted, { event: 'expire', actor: 'brand' }).ok).toBe(false);
+  expect(transition(accepted, { event: 'expire', actor: 'creator' }).ok).toBe(false);
+});
+
+test('expire never appears as a button for either side', () => {
+  const accepted = { state: 'accepted', counterRounds: 0, trackedLink: null, postUrl: null, lastCounterBy: null } as const;
+
+  expect(allowedEvents(accepted, 'brand')).not.toContain('expire');
+  expect(allowedEvents(accepted, 'creator')).not.toContain('expire');
+});

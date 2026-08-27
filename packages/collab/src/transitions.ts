@@ -62,6 +62,13 @@ const RULES: readonly Rule[] = [
   { from: 'accepted', event: 'share_brief', actors: ['brand'], to: 'brief_shared' },
   { from: 'brief_shared', event: 'submit_draft', actors: ['creator'], to: 'draft_submitted' },
 
+  { from: 'accepted', event: 'expire', actors: ['system'], to: 'expired' },
+  { from: 'brief_shared', event: 'expire', actors: ['system'], to: 'expired' },
+  { from: 'draft_submitted', event: 'expire', actors: ['system'], to: 'expired' },
+  { from: 'revision_requested', event: 'expire', actors: ['system'], to: 'expired' },
+  { from: 'draft_approved', event: 'expire', actors: ['system'], to: 'expired' },
+  { from: 'scheduled', event: 'expire', actors: ['system'], to: 'expired' },
+
   { from: 'draft_submitted', event: 'approve', actors: ['brand'], to: 'draft_approved', effects: ['mint_tracked_link'] },
   { from: 'draft_submitted', event: 'request_revision', actors: ['brand'], to: 'revision_requested' },
   { from: 'revision_requested', event: 'submit_draft', actors: ['creator'], to: 'draft_submitted' },
@@ -164,10 +171,13 @@ export function transition(collab: Collaboration, move: Move): Outcome {
     }
   }
 
+  const expiryRefund: Effect[] =
+    move.event === 'expire' && ESCROW_HELD_FROM.includes(collab.state) ? ['refund_escrow'] : [];
+
   return {
     ok: true,
     to: rule.to,
-    effects: rule.effects ?? [],
+    effects: [...(rule.effects ?? []), ...expiryRefund],
     counterRounds: move.event === 'counter' ? collab.counterRounds + 1 : collab.counterRounds,
     lastCounterBy: move.event === 'counter' ? move.actor : collab.lastCounterBy
   };

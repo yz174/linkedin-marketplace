@@ -3,6 +3,8 @@ export * from './openrouter';
 export * from './embed';
 export * from './scrape';
 export * from './icp';
+export * from './campaign';
+export * from './documents';
 export * from './linkedin/provider';
 export * from './linkedin/scrapecreators';
 export * from './linkedin/manual';
