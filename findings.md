@@ -12,10 +12,9 @@ request log. This file holds the state of the code.
 
 Last updated: 2026-08-28
 
-Right now: Phases 0, 1 and 3 are done. Phase 2 is missing campaign import and the expiry
-clock. Phases 4 and 5 have not begun.
+Right now: Phases 0 to 3 are done. Phases 4 and 5 have not begun.
 
-`bun test` is 128 passing, 64 of them against live Neon. Both typechecks clean.
+`bun test` is 151 passing, 78 of them against live Neon. Both typechecks clean.
 `bun run dev` starts the API on 3001 and the web app on 3000. Fifteen web routes build.
 
 Design direction is settled: **Imperial Blue `#021F94` on White Convolvulus `#F5F2F3`**,
@@ -28,7 +27,7 @@ rejected. Do not read it as current. `design-lab/imperial/` is the approved pair
 |---|---|---|
 | 0 | Research docs, design system, approved mockups | done |
 | 1 | Auth, both onboardings, catalog, match algorithm | done |
-| 2 | Campaigns, collaborations, tracked links | mostly done, see what is left |
+| 2 | Campaigns, collaborations, tracked links | done |
 | 3 | Messenger over WebSocket, SSE status stream | done |
 | 4 | Mocked ledger, escrow, analytics | not started |
 | 5 | Workspaces and invites | not started |
@@ -86,8 +85,8 @@ Auth, both onboardings, the catalog, and the match algorithm. All done.
 
 ### Phase 2 detail
 
-Campaigns, collaborations, tracked links. The negotiation half is done. Campaign import and
-the expiry clock are not, and both are listed under what is left.
+Campaigns, collaborations, tracked links, campaign import, and the expiry clock. All done.
+The refund the clock returns is recorded as an effect and performed in Phase 4.
 
 | Item | Status | Files |
 |---|---|---|
@@ -99,9 +98,11 @@ the expiry clock are not, and both are listed under what is left.
 | Brand campaigns page and create form | done, verified live | `apps/web/src/app/brand/(app)/campaigns/` |
 | Commission a creator from the catalog | done, verified live | `apps/web/src/components/commission-button.tsx` |
 | Tracked link enforced in the machine and in a CHECK constraint | done | `packages/collab/src/transitions.ts`, `packages/db/src/schema.ts` |
-| Campaign creation from a URL | **not started** | n/a |
-| Campaign creation from a document | **not started** | n/a |
-| Accept-to-publish clock and auto-refund | **not started** | n/a |
+| Campaign draft from a URL or a pasted brief | done, 5 tests | `packages/ai/src/campaign.ts`, `apps/api/src/routes/campaign-routes.ts` |
+| Campaign draft from PDF, DOCX, PPTX | done, 6 extraction tests plus 3 route tests | `packages/ai/src/documents.ts` |
+| Import UI, three sources into one editable form | done, verified through the proxy | `apps/web/src/components/campaign-form.tsx` |
+| Expire rules for every pre-publication state | done, 5 tests | `packages/collab/src/transitions.ts` |
+| Response and publication clock sweep | done, 4 tests | `apps/api/src/events/expiry.ts` |
 
 ### Phase 3 detail
 
@@ -128,7 +129,7 @@ Messenger over WebSocket and the SSE status stream. All done.
 
 Not started. Scope is under what is left. The nine sidebar links that 404 belong here.
 
-`bun test` is 128 passing, 64 of them against the live Neon database. `bun run typecheck` is
+`bun test` is 151 passing, 78 of them against the live Neon database. `bun run typecheck` is
 clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
 app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
 
@@ -139,21 +140,13 @@ resolves to IPv6 here and nothing binds `::1`.
 
 The single list of unbuilt work. Update it here, not in six places.
 
-**Phase 2 remainder**
-
-| Item | Note |
-|---|---|
-| Campaign creation from a URL | Route accepts `source: 'url'` but nothing reads the page. `readPage` in `packages/ai` already does the work. |
-| Campaign creation from PDF, PPTX, DOCX | Needs `pdf-parse`, `mammoth`, JSZip. None installed, none proven on Bun. |
-| Accept-to-publish clock | `expire` exists in the state machine with a system actor. Nothing drives it. Needs a scheduled job. |
-| Auto-refund on expiry | The machine returns `refund_escrow`. Nothing performs it until Phase 4. |
-
 **Phase 4, not started**
 
 Wallets, double-entry `ledger_entries`, `escrow_holds`, `idempotency_keys`, and the
 analytics rollups. The state machine already emits `hold_escrow`, `release_escrow`, and
 `refund_escrow` as effects, so this phase implements the effects rather than reworking the
-machine.
+machine. The expiry sweep already writes `refund_escrow` into `collaboration_events`, so
+Phase 4 has a record of every refund it owes.
 
 **Phase 5, not started**
 
@@ -182,8 +175,6 @@ one list answers "what is left".
 
 | Feature | Phase |
 |---|---|
-| Campaign creation from a URL or an uploaded document | 2 |
-| Accept-to-publish clock with auto-refund on expiry | 2 |
 | Voice-matched draft co-pilot from the creator's post corpus | 3 |
 | Billing tab, mocked | 4 |
 | Creator earnings page | 4 |
@@ -319,6 +310,12 @@ Populated as things get built. Path plus export name so nobody greps.
 | Socket lifecycle | `apps/api/src/messaging/ws.ts` | `registerMessageSocket` |
 | Signed ticket issue and verify | `apps/api/src/messaging/ticket.ts` | `issueTicket`, `readTicket` |
 | Status frames over SSE | `packages/contracts/src/events.ts` | `StatusFrame`, `CollabChanged`, `StatusHello` |
+| Campaign draft shapes | `packages/contracts/src/campaign.ts` | `CampaignDraft`, `DraftCampaignRequest`, `DraftCampaignResponse` |
+| Campaign brief from a page or a pasted brief | `packages/ai/src/campaign.ts` | `draftCampaign` |
+| Text out of a PDF, DOCX, or PPTX | `packages/ai/src/documents.ts` | `extractDocument`, `documentKind`, `MAX_DOCUMENT_BYTES` |
+| Document fixtures and the script that wrote them | `packages/ai/fixtures/`, `packages/ai/make-fixtures.ts` | `brief.pdf`, `brief.docx`, `brief.pptx` |
+| Response and publication clock | `apps/api/src/events/expiry.ts` | `sweepExpiries`, `startExpirySweep`, `RESPONSE_WINDOW_MS` |
+| One publish path for status frames | `apps/api/src/events/bus.ts` | `publishCollabChange` |
 | Status room keys and bus type | `apps/api/src/events/bus.ts` | `StatusBus`, `brandRoom`, `creatorRoom` |
 | SSE status endpoint | `apps/api/src/events/sse.ts` | `statusStream` |
 | Live refresh on a status frame | `apps/web/src/components/live-collabs.tsx` | `LiveCollabs` |
@@ -471,6 +468,31 @@ inside the existing guarded scope and reuses `requireRole`. No second auth path.
 **2026-08-28, the broker is generic over its payload.** `Broker<T>` and `InProcessBroker<T>`
 carry `Message` for the socket and `CollabChanged` for the status stream. One implementation
 for both, and the type parameter stops either stream from delivering the other's frames.
+
+**2026-08-28, multipart is parsed by the runtime, not by a plugin.** `@fastify/multipart`
+was installed and then removed. Bun and Node both implement `Response.formData()`, so a
+six-line `addContentTypeParser` on `multipart/form-data` hands the handler a `FormData` and
+the route reads a `File` off it. One dependency fewer, identical behaviour on both runtimes,
+and the 10MB cap is the route's `bodyLimit` rather than a plugin option.
+
+**2026-08-28, the campaign draft is generated, then edited, never saved silently.**
+`POST /campaigns/draft` and `/campaigns/draft/document` return a draft and read nothing into
+the database. The form fills its fields from that draft and the brand presses create. Same
+shape as brand onboarding, for the same reason: a model wrote it, so a person confirms it.
+
+**2026-08-28, the model does not choose the budget.** It returns title, objective, key
+messages, do-not entries, and deliverable. Money stays the brand's decision, and inventing a
+number the source never mentioned would be the one field nobody would think to check.
+
+**2026-08-28, two clocks, one sweep.** An unanswered invitation expires 72 hours after it was
+sent. An accepted assignment expires at `publish_by`, if the brand set one. Both run through
+`transition` with a `system` actor, so the rules stay in the state machine and the sweep only
+decides who is overdue. The publication clock returns `refund_escrow`, the response clock does
+not, because nothing was held before acceptance.
+
+**2026-08-28, expiry runs in the API process, not a cron.** One process, so a five minute
+`setInterval` started in `server.ts` is the whole scheduler. `buildApp` does not start it, so
+tests call `sweepExpiries` directly with a fixed clock instead of waiting on a timer.
 
 **2026-08-28, one API process, no message bus.** Ujjwal's call. A second instance would need
 the broker backed by something shared, and this product does not run one. `InProcessBroker`
@@ -733,6 +755,46 @@ never exits, which reads like a hang in the tests themselves.
 `registerMessageSocket` tracks every open socket and closes them from an `onClose` hook with
 `CloseCode.serverShutdown`, and the Fastify factory sets `forceCloseConnections: true`. This
 is a real graceful-shutdown requirement, not a test workaround.
+
+### inject drops the multipart content-type if you read it after awaiting the body
+
+Cost an hour and pointed at the wrong thing the whole time. This helper returns 415 on every
+upload:
+
+```ts
+app.inject({
+  payload: Buffer.from(await encoded.arrayBuffer()),
+  headers: { 'content-type': encoded.headers.get('content-type')! }
+});
+```
+
+This one returns 200:
+
+```ts
+const contentType = encoded.headers.get('content-type')!;
+const payload = Buffer.from(await encoded.arrayBuffer());
+app.inject({ payload, headers: { 'content-type': contentType } });
+```
+
+Deterministic, ten runs each. The symptom is `FST_ERR_CTP_INVALID_MEDIA_TYPE`, which reads
+like a missing content type parser, so the hour went into registering, re-registering, and
+un-registering `@fastify/multipart` in three different scopes. The route was fine from the
+first attempt.
+
+Capture any header off a `Response` before you consume its body.
+
+### Document parsers all run on Bun
+
+`pdf-parse@2`, `mammoth`, and `jszip` were the open question blocking campaign uploads. All
+three work with no shim and no subprocess. pdf-parse v2 is ESM with real `exports`, so the
+`module.parent` hack that broke v1 under bundlers is gone.
+
+PPTX has no parser. A `.pptx` is a zip, so `extractDocument` reads
+`ppt/slides/slideN.xml`, pulls the `<a:t>` runs, and joins them in slide order.
+
+Fixtures at `packages/ai/fixtures/brief.{pdf,docx,pptx}` are generated by
+`packages/ai/make-fixtures.ts`, which is the only reason `pdf-lib` is a dev dependency. Run
+it from `packages/ai`, since it writes relative to the working directory.
 
 ### The status stream needs writeHead, not reply.send
 

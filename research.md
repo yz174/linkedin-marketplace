@@ -23,7 +23,7 @@ Last updated: 2026-08-28
 | Metaphor and palette | round 1 rejected, round 2 approved | n/a |
 | Round 2 direction: Imperial Blue, ID Grotesk + Times | approved 2026-08-27 | n/a |
 | ID Grotesk licence and woff2 files | **open**, must be purchased | before the web app ships |
-| Document parsing libs under Bun | not started | before campaign uploads |
+| Document parsing libs under Bun | done, pdf-parse v2, mammoth, jszip all work | if a parser majors |
 | Creator supply acquisition strategy | not started | before launch, not before build |
 | WebSocket transport, auth on upgrade, resume | done, 24 tests | if the protocol version changes |
 | SSE for status and analytics | done, 4 tests, cookie auth through the /bff rewrite | if the frame set grows |
@@ -34,10 +34,6 @@ Open questions:
   files self-hosted at `apps/web/public/fonts/`. Inter is the fallback in the stack, so
   nothing reflows when the real files land. This is the only thing blocking the web app
   from looking finished.
-- **`pdf-parse`, `mammoth`, and JSZip on the Bun runtime.** All three are Node-era libraries
-  with filesystem assumptions and none is installed yet. Blocks campaign import from a
-  document. If any breaks, parsing moves behind a small Node subprocess rather than
-  migrating the API.
 - **ScrapeCreators credits.** Around 90 of the 100 free credits remain. Each creator
   onboarding costs 1 plus `LINKEDIN_ENRICH_POSTS`, so 6 by default. Roughly fifteen more
   creators before the free tier runs out.
@@ -48,6 +44,8 @@ Resolved since the first draft:
 - OpenRouter primary pinned to `google/gemini-2.5-flash` after a live ICP run returned
   correct sectors in 3.7s with no repair retry.
 - Neon, pgvector, and Drizzle set up, migrated, and covered by live constraint tests.
+- `pdf-parse` v2, `mammoth`, and `jszip` all run on Bun with no subprocess. Verified against
+  generated fixtures in `packages/ai/fixtures/`.
 
 ---
 
@@ -384,7 +382,7 @@ verified. `partial` names what is missing. Update this column when a feature lan
 | 2026-08-27 | Ujjwal | Creator identity card with fetched stats | Inclusiveness and retention on the supply side | 1 | shipped |
 | 2026-08-27 | Ujjwal | Creator catalog, matched and browse-all views | The screen that decides whether brands stay | 1 | shipped |
 | 2026-08-27 | Ujjwal | Match algorithm on a shared taxonomy, both sides capped at 3 tags | Untargeted catalogs waste brand time | 1 | shipped |
-| 2026-08-27 | Ujjwal | Campaign creation three ways: AI, URL, document upload | Brands already have briefs in PDF and PPTX | 2 | accepted |
+| 2026-08-27 | Ujjwal | Campaign creation three ways: AI, URL, document upload | Brands already have briefs in PDF and PPTX | 2 | shipped |
 | 2026-08-27 | Ujjwal | Collaborations tab tracking every status from booking to payment | The core operational surface | 2 | shipped |
 | 2026-08-27 | Ujjwal | Messenger over WebSocket | Negotiation happens in conversation | 3 | shipped |
 | 2026-08-27 | Ujjwal | SSE for status changes and analytics | Live updates without polling | 3 | shipped |
@@ -392,10 +390,10 @@ verified. `partial` names what is missing. Update this column when a feature lan
 | 2026-08-27 | Ujjwal | Creator earnings page | Supply-side transparency | 4 | accepted |
 | 2026-08-27 | Ujjwal | Brand workspaces with member invites | Marketing teams are not one person | 5 | accepted |
 | 2026-08-27 | Claude | Explainable match score, reason chips plus weight sliders | Naano shows a number with no reason. Cheapest real differentiator. | 1 | shipped, sliders not interactive |
-| 2026-08-27 | Claude | Delivery reliability score public on every creator card | Naano's own 30.4% delivery rate under EUR 200 goes unaddressed in their product | 2 | shipped, no accept-to-publish clock |
+| 2026-08-27 | Claude | Delivery reliability score public on every creator card | Naano's own 30.4% delivery rate under EUR 200 goes unaddressed in their product | 2 | shipped |
 | 2026-08-27 | Claude | Counter-offers as a first-class state, bounded at 3 rounds | Naano has no negotiation at all | 2 | shipped |
 | 2026-08-27 | Claude | Tracked links enforced by the state machine, not by reminder | Naano's attribution coverage is 62% because tracking is optional | 2 | shipped |
 | 2026-08-27 | Claude | Voice-matched draft co-pilot from the creator's own post corpus | Writing sponsored posts is the biggest supply-side friction, and we already store the corpus for matching | 3 | accepted |
 | 2026-08-27 | Claude | Creator rotation bundles, book 5-8 with staggered dates | Naano's playbook says rotation works, their product makes you assemble it by hand | 4 | accepted |
 | 2026-08-27 | Claude | Compare tray, pin up to 4 creators side by side | Shortlisting across a large catalog | 1 | not started |
-| 2026-08-27 | Claude | Accept-to-publish clock with auto-refund on expiry | Enforces the reliability score instead of only displaying it | 2 | accepted, not built |
+| 2026-08-27 | Claude | Accept-to-publish clock with auto-refund on expiry | Enforces the reliability score instead of only displaying it | 2 | shipped, refund recorded as an effect until Phase 4 performs it |
