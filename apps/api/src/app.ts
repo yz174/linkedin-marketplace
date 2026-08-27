@@ -11,6 +11,8 @@ import { HttpError } from './http';
 import { authRoutes, forward, toHeaders } from './routes/auth-routes';
 import { brandRoutes } from './routes/brand-routes';
 import { catalogRoutes } from './routes/catalog-routes';
+import { campaignRoutes } from './routes/campaign-routes';
+import { collabRoutes } from './routes/collab-routes';
 import { creatorRoutes } from './routes/creator-routes';
 
 export function buildApp() {
@@ -66,6 +68,8 @@ export function buildApp() {
         guarded.get('/me', async (request) => request.session);
         brandRoutes(guarded);
         catalogRoutes(guarded);
+        campaignRoutes(guarded);
+        collabRoutes(guarded, 'brand');
       });
     },
     { prefix: '/brand' }
@@ -78,6 +82,7 @@ export function buildApp() {
         guarded.addHook('preHandler', requireRole('creator'));
         guarded.get('/me', async (request) => request.session);
         creatorRoutes(guarded);
+        collabRoutes(guarded, 'creator');
       });
     },
     { prefix: '/creator' }
