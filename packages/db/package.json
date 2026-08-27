@@ -1,0 +1,21 @@
+{
+  "name": "@lm/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "bun run src/migrate.ts",
+    "seed": "bun run src/seed.ts"
+  },
+  "dependencies": {
+    "@lm/contracts": "workspace:*",
+    "drizzle-orm": "^0.38.3",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "drizzle-kit": "^0.30.1"
+  }
+}

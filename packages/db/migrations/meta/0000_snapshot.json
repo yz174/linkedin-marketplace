@@ -1,0 +1,747 @@
+{
+  "id": "c59a16f9-6e10-4b41-a736-7472e7342105",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.brands": {
+      "name": "brands",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company_name": {
+          "name": "company_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_url": {
+          "name": "product_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icp_summary": {
+          "name": "icp_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icp_points": {
+          "name": "icp_points",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer_titles": {
+          "name": "buyer_titles",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "sectors": {
+          "name": "sectors",
+          "type": "sector[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "icp_embedding": {
+          "name": "icp_embedding",
+          "type": "vector(768)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "brands_workspace_key": {
+          "name": "brands_workspace_key",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "brands_workspace_id_workspaces_id_fk": {
+          "name": "brands_workspace_id_workspaces_id_fk",
+          "tableFrom": "brands",
+          "tableTo": "workspaces",
+          "columnsFrom": [
+            "workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "brands_sectors_len": {
+          "name": "brands_sectors_len",
+          "value": "cardinality(\"brands\".\"sectors\") between 1 and 3"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.creators": {
+      "name": "creators",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contributor_number": {
+          "name": "contributor_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "creators_contributor_number_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "100",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "profile_url": {
+          "name": "profile_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "headline": {
+          "name": "headline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "topics": {
+          "name": "topics",
+          "type": "sector[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_per_post_minor": {
+          "name": "rate_per_post_minor",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "followers": {
+          "name": "followers",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "engagement_rate": {
+          "name": "engagement_rate",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "posts_per_week": {
+          "name": "posts_per_week",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "accepted_count": {
+          "name": "accepted_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "delivered_count": {
+          "name": "delivered_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "open_slots": {
+          "name": "open_slots",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 2
+        },
+        "fingerprint_embedding": {
+          "name": "fingerprint_embedding",
+          "type": "vector(768)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "listed": {
+          "name": "listed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "creators_user_key": {
+          "name": "creators_user_key",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "creators_profile_url_key": {
+          "name": "creators_profile_url_key",
+          "columns": [
+            {
+              "expression": "profile_url",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "creators_topics_idx": {
+          "name": "creators_topics_idx",
+          "columns": [
+            {
+              "expression": "topics",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "creators_user_id_users_id_fk": {
+          "name": "creators_user_id_users_id_fk",
+          "tableFrom": "creators",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "creators_topics_len": {
+          "name": "creators_topics_len",
+          "value": "cardinality(\"creators\".\"topics\") between 1 and 3"
+        },
+        "creators_rate_nonneg": {
+          "name": "creators_rate_nonneg",
+          "value": "\"creators\".\"rate_per_post_minor\" >= 0"
+        },
+        "creators_delivered_lte_accepted": {
+          "name": "creators_delivered_lte_accepted",
+          "value": "\"creators\".\"delivered_count\" <= \"creators\".\"accepted_count\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.linkedin_profile_snapshots": {
+      "name": "linkedin_profile_snapshots",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "profile_url": {
+          "name": "profile_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "linkedin_snapshots_url_idx": {
+          "name": "linkedin_snapshots_url_idx",
+          "columns": [
+            {
+              "expression": "profile_url",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "fetched_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sessions_token_key": {
+          "name": "sessions_token_key",
+          "columns": [
+            {
+              "expression": "token_hash",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sessions_user_idx": {
+          "name": "sessions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_type": {
+          "name": "account_type",
+          "type": "account_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "users_email_key": {
+          "name": "users_email_key",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.workspace_members": {
+      "name": "workspace_members",
+      "schema": "",
+      "columns": {
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "member_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "workspace_members_key": {
+          "name": "workspace_members_key",
+          "columns": [
+            {
+              "expression": "workspace_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "workspace_members_workspace_id_workspaces_id_fk": {
+          "name": "workspace_members_workspace_id_workspaces_id_fk",
+          "tableFrom": "workspace_members",
+          "tableTo": "workspaces",
+          "columnsFrom": [
+            "workspace_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "workspace_members_user_id_users_id_fk": {
+          "name": "workspace_members_user_id_users_id_fk",
+          "tableFrom": "workspace_members",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.workspaces": {
+      "name": "workspaces",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.account_type": {
+      "name": "account_type",
+      "schema": "public",
+      "values": [
+        "brand",
+        "creator"
+      ]
+    },
+    "public.member_role": {
+      "name": "member_role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "admin",
+        "member"
+      ]
+    },
+    "public.sector": {
+      "name": "sector",
+      "schema": "public",
+      "values": [
+        "DevTools",
+        "RevOps",
+        "MarTech",
+        "FinTech",
+        "HR Tech",
+        "Recruiting",
+        "Sales",
+        "Cybersecurity",
+        "Data and AI",
+        "B2B SaaS",
+        "E-commerce",
+        "Manufacturing",
+        "Logistics",
+        "Healthcare",
+        "Legal",
+        "Real Estate",
+        "Education",
+        "Design",
+        "Fashion",
+        "Hospitality",
+        "Gaming",
+        "Sustainability",
+        "Consulting",
+        "Hardware"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
