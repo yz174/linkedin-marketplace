@@ -22,6 +22,13 @@
       "when": 1787847626738,
       "tag": "0002_opposite_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787848790620,
+      "tag": "0003_tan_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

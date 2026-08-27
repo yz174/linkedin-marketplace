@@ -235,6 +235,7 @@ export const collaborations = pgTable(
     counterFeeMinor: bigint('counter_fee_minor', { mode: 'number' }),
     counterRounds: integer('counter_rounds').notNull().default(0),
     lastCounterBy: actorKind('last_counter_by'),
+    messageSeq: bigint('message_seq', { mode: 'number' }).notNull().default(0),
     trackedLink: text('tracked_link'),
     postUrl: text('post_url'),
     draft: text('draft'),
@@ -272,4 +273,25 @@ export const collaborationEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
   },
   (t) => [index('collaboration_events_collab_idx').on(t.collaborationId, t.createdAt)]
+);
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').primaryKey(),
+    collaborationId: uuid('collaboration_id')
+      .notNull()
+      .references(() => collaborations.id, { onDelete: 'cascade' }),
+    seq: bigint('seq', { mode: 'number' }).notNull(),
+    sender: actorKind('sender').notNull(),
+    senderUserId: text('sender_user_id').references(() => users.id, { onDelete: 'set null' }),
+    body: text('body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    uniqueIndex('messages_collab_seq_key').on(t.collaborationId, t.seq),
+    index('messages_collab_seq_idx').on(t.collaborationId, t.seq),
+    check('messages_seq_positive', sql`${t.seq} > 0`),
+    check('messages_body_length', sql`char_length(${t.body}) between 1 and 4000`)
+  ]
 );
