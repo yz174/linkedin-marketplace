@@ -23,11 +23,14 @@ export type CreatorInput = {
   deliveredCount: number;
   openSlots: number;
   fingerprintEmbedding?: readonly number[];
+  semanticFit?: number;
 };
 
 const RELIABILITY_PRIOR_WEIGHT = 4;
 const RELIABILITY_PRIOR_VALUE = 0.5;
 const NEUTRAL_SEMANTIC_FIT = 0.5;
+export const SEMANTIC_FLOOR = 0.45;
+export const SEMANTIC_CEILING = 0.78;
 const NEUTRAL_ENGAGEMENT_FIT = 0.5;
 const CADENCE_TARGET_PER_WEEK = 3;
 const SLOT_TARGET = 2;
@@ -79,9 +82,14 @@ export function cosine(a: readonly number[], b: readonly number[]) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
+export function normalizeCosine(similarity: number) {
+  return clamp01((similarity - SEMANTIC_FLOOR) / (SEMANTIC_CEILING - SEMANTIC_FLOOR));
+}
+
 export function semanticFit(brand: BrandInput, creator: CreatorInput) {
+  if (creator.semanticFit !== undefined) return clamp01(creator.semanticFit);
   if (!brand.icpEmbedding || !creator.fingerprintEmbedding) return NEUTRAL_SEMANTIC_FIT;
-  return clamp01((cosine(brand.icpEmbedding, creator.fingerprintEmbedding) + 1) / 2);
+  return normalizeCosine(cosine(brand.icpEmbedding, creator.fingerprintEmbedding));
 }
 
 export function audienceFit(brand: BrandInput, creator: CreatorInput) {

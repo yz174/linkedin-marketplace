@@ -7,8 +7,11 @@ import {
   cosine,
   deliveryRate,
   rankCreators,
+  normalizeCosine,
   reliability,
   scoreCreator,
+  SEMANTIC_CEILING,
+  SEMANTIC_FLOOR,
   tagAffinity
 } from './score';
 
@@ -104,6 +107,14 @@ test('semantic fit uses the embeddings when both are present', () => {
   expect(opposed.components.semanticFit).toBeCloseTo(0, 5);
 });
 
+test('cosine normalisation stretches the range real embeddings occupy', () => {
+  expect(normalizeCosine(SEMANTIC_FLOOR)).toBe(0);
+  expect(normalizeCosine(SEMANTIC_CEILING)).toBe(1);
+  expect(normalizeCosine(0.40)).toBe(0);
+  expect(normalizeCosine(0.95)).toBe(1);
+  expect(normalizeCosine(0.71)).toBeGreaterThan(normalizeCosine(0.58));
+});
+
 test('weights change the ordering', () => {
   const brand: BrandInput = { sectors: ['HR Tech'] };
   const onTopic = { id: 'a', creator: creator({ topics: ['HR Tech'], engagementRate: 0.02 }) };
@@ -166,4 +177,17 @@ test('audience fit falls back to neutral when engagement is unknown', () => {
 test('an unknown engagement rate produces no engagement reason', () => {
   const result = scoreCreator({ sectors: ['RevOps'] }, creator({ engagementRate: null }));
   expect(result.reasons.some((r) => r.component === 'audienceFit')).toBe(false);
+});
+
+test('a precomputed semantic fit wins over raw embeddings', () => {
+  const result = scoreCreator(
+    { sectors: ['RevOps'], icpEmbedding: [1, 0, 0] },
+    creator({ fingerprintEmbedding: [-1, 0, 0], semanticFit: 0.9 })
+  );
+  expect(result.components.semanticFit).toBeCloseTo(0.9, 5);
+});
+
+test('a precomputed semantic fit is clamped into range', () => {
+  const high = scoreCreator({ sectors: ['RevOps'] }, creator({ semanticFit: 4 }));
+  expect(high.components.semanticFit).toBe(1);
 });
