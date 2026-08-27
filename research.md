@@ -13,11 +13,11 @@ Last updated: 2026-08-27
 |---|---|---|
 | Naano product teardown | done | when they ship a pricing change |
 | Category landscape | done | quarterly |
-| ScrapeCreators LinkedIn API | done, key not yet supplied | before Phase 1 creator onboarding |
-| OpenRouter structured output support per model | partial | before Phase 1 ICP generation |
+| ScrapeCreators LinkedIn API | done, key supplied and tested live | when the post shape changes |
+| OpenRouter structured output support per model | done, gemini-2.5-flash verified | if the pinned model changes |
 | Gemini embeddings limits and dims | done | if model version changes |
-| Better Auth + Fastify + Bun integration | not started | before Phase 1 auth |
-| Neon + pgvector + Drizzle setup | not started | before Phase 1 schema |
+| Better Auth + Fastify + Bun integration | not started | before the API is built |
+| Neon + pgvector + Drizzle setup | done, migrated and tested live | n/a |
 | LinkedIn legal position | done | annually or on new litigation |
 | Typography and color direction | done, decided | after variant pick |
 | Metaphor and palette | round 1 rejected | n/a |
@@ -156,12 +156,20 @@ credits with up to 7,000 bonus available, no card. Average response time quoted 
 
 Two constraints that shape the product:
 
-1. LinkedIn no longer exposes work history or job title publicly. The endpoint returns only
-   what an incognito browser sees. The creator identity card must be designed without those
-   fields.
+1. Work history comes back but is unusable. `experience` and `education` are returned, yet
+   company names arrive masked as `************ ******` for an unauthenticated scrape. The
+   creator identity card must be designed without them. Corrected 2026-08-27 after hitting
+   the real endpoint; the earlier note claimed the fields were absent entirely.
 2. A 3s response time means profile fetch cannot sit inside a synchronous form submit
    without a real loading state. Creator onboarding step 3 needs a progress affordance that
    holds attention for several seconds.
+
+**Verified live 2026-08-27.** `recentPosts` carries no engagement counts, only
+`{ link, id, title, datePublished, activityType }`, where `title` is the post text truncated
+to roughly 60 to 370 characters. Reaction and comment counts need a separate
+`GET /v1/linkedin/post` call per post, which also returns the full untruncated text. One
+creator onboarding therefore costs 1 credit plus 1 per enriched post. Fixtures of both real
+responses are saved at `packages/ai/fixtures/`.
 
 The `company` endpoint is a bonus for brand onboarding. A brand's LinkedIn company page
 gives follower count and a self-description that improves ICP generation.

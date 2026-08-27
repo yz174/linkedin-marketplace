@@ -10,8 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test packages",
     "db:generate": "cd packages/db && bun run generate",
-    "db:migrate": "cd packages/db && bun run migrate",
-    "db:seed": "cd packages/db && bun run seed"
+    "db:migrate": "bun run packages/db/src/migrate.ts",
+    "db:seed": "bun run packages/db/src/seed.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

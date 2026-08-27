@@ -66,20 +66,23 @@ step and no dependencies.
 | Shared contracts and taxonomy | done, 12 tests | `packages/contracts/src/` |
 | Match scoring engine | done, 16 tests | `packages/match/src/score.ts` |
 | Database schema and migration | done, generated | `packages/db/src/schema.ts`, `packages/db/migrations/0000_awesome_songbird.sql` |
-| Account-type trigger and pgvector indexes | written, not yet applied | `packages/db/src/sql/guards.sql` |
-| Migration applied to a real database | **not started**, needs `DATABASE_URL` | n/a |
-| AI layer, OpenRouter and Gemini | not started | `packages/ai/` |
+| Account-type trigger and pgvector indexes | done, applied and tested live | `packages/db/src/sql/guards.sql` |
+| Migration applied to Neon | done, 8 live constraint tests pass | `packages/db/src/schema.test.ts` |
+| AI layer, OpenRouter and Gemini | done | `packages/ai/src/` |
+| LinkedIn provider, ScrapeCreators and manual | done | `packages/ai/src/linkedin/` |
+| Brand site scraper | done | `packages/ai/src/scrape.ts` |
+| ICP generation | done, verified live against ashbyhq.com | `packages/ai/src/icp.ts` |
 | Fastify API and auth | not started | `apps/api/` |
 | Next.js web | not started | `apps/web/` |
 
-`bun test` is 28 passing. `bun run typecheck` is clean.
+`bun test packages` is 46 passing, 8 of them against the live Neon database.
+`bun run typecheck` is clean.
 
 ### Blocked
 
 | What | Blocked on | Workaround |
 |---|---|---|
-| Applying migrations | A Neon `DATABASE_URL` | Schema and migration are generated and reviewable without one |
-| Real creator onboarding | ScrapeCreators API key from Ujjwal | `ManualPasteProvider`, plus fixture data for all UI work |
+| ScrapeCreators credits | 97 of 100 free credits remain. Onboarding one creator costs 1 + `LINKEDIN_ENRICH_POSTS` credits, 6 by default, so about 16 creators before the free tier runs out. | Set `LINKEDIN_ENRICH_POSTS=0`, or buy credits |
 | ID Grotesk rendering | A purchased webfont licence and self-hosted woff2 files | Inter is the fallback in the stack, so layouts hold and nothing shifts when the real face lands |
 | Phase 1 start | Sign-off on the two round-2 mockups | none, this gate is deliberate |
 
@@ -165,7 +168,15 @@ Populated as things get built. Path plus export name so nobody greps.
 | OpenRouter client | `packages/ai/src/openrouter.ts` | `complete` |
 | Gemini embeddings | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
 | Role guards | `apps/api/src/auth/guards.ts` | `requireRole` |
-| Ledger operations | `apps/api/src/billing/ledger.ts` | `credit`, `debit`, `hold`, `release` |
+| Ledger operations | `apps/api/src/billing/ledger.ts` | `credit`, `debit`, `hold`, `release` (Phase 4, not built) |
+| Validated AI environment | `packages/ai/src/env.ts` | `env` |
+| Structured model call with repair retry | `packages/ai/src/openrouter.ts` | `complete` |
+| Gemini embeddings, 768 dims, normalised | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
+| Provider selection by env var | `packages/ai/src/linkedin/select.ts` | `linkedInProvider` |
+| Fingerprint maths, engagement and cadence | `packages/ai/src/linkedin/provider.ts` | `buildFingerprint` |
+| Readable page text, strips CSS and scripts | `packages/ai/src/scrape.ts` | `readPage`, `THIN_CONTENT_THRESHOLD` |
+| ICP generation and the thin-page failure | `packages/ai/src/icp.ts` | `generateIcp`, `ThinPageError` |
+| Captured live API responses | `packages/ai/fixtures/` | `scrapecreators-profile.json`, `scrapecreators-post.json` |
 
 Rows are marked when they are not yet built. Delete a row if the plan changes rather than
 leaving a stale pointer.
@@ -268,6 +279,18 @@ Arc / Family / Rauno tier: interaction mechanics over illustration. Full detail 
 build. Two things stay in on craft grounds rather than compliance grounds: designed focus
 states, and Radix unstyled primitives so a later retrofit is a styling job rather than a
 rewrite. Recorded so nobody reads it as an oversight.
+
+**2026-08-27, engagement rate is nullable end to end.** Forced by what ScrapeCreators
+actually returns. `null` means unknown, is scored as a neutral, and is never coerced to 0.
+
+**2026-08-27, post enrichment is capped and configurable.** `LINKEDIN_ENRICH_POSTS`,
+default 5. Onboarding one creator costs `1 + N` ScrapeCreators credits. Set it to 0 to skip
+engagement and rely on cadence plus topic signal alone.
+
+**2026-08-27, OpenRouter primary is `google/gemini-2.5-flash`,** with
+`anthropic/claude-3.5-haiku` and `openai/gpt-4o-mini` as ordered fallbacks. Picked after a
+live ICP run against ashbyhq.com returned correct sectors in 3.7s with no repair retry.
+Override with `OPENROUTER_MODEL`.
 
 **2026-08-27, typefaces: ID Grotesk plus Times.** Ujjwal's call, after "Tempting" was
 raised and turned out to be a personal-use script font by MOH, wrong for a dashboard.
@@ -388,6 +411,72 @@ role" field expecting the provider to fill it.
 Quoted average is 3.12s. Too slow to sit inside a form submit with a spinner. Creator
 onboarding step 3 needs a progress state substantial enough to hold attention, which is why
 the identity card reveal is framed as an event rather than a page load.
+
+### ScrapeCreators does not return engagement on the profile endpoint
+
+The most expensive discovery so far, because it forced a contract change.
+
+`GET /v1/linkedin/profile` returns `recentPosts` as
+`{ link, id, title, datePublished, activityType }`. No reaction count, no comment count, and
+`title` is the post text truncated to roughly 60 to 370 characters. Engagement rate, which
+every creator card and the `audienceFit` component depend on, is not there.
+
+`GET /v1/linkedin/post` does return `likeCount`, `commentCount`, and the full untruncated
+`description`. Engagement therefore costs one extra credit per post.
+
+What that means in the code:
+
+- `Fingerprint.engagementRate` is `number | null`. Unknown is not zero, and coercing it to
+  zero would rank every un-enriched creator last.
+- `audienceFit` falls back to a neutral 0.5 when engagement is null, the same way
+  `semanticFit` does when an embedding is missing.
+- `LINKEDIN_ENRICH_POSTS`, default 5, caps how many posts get enriched. Onboarding costs
+  `1 + N` credits and never surprises anyone.
+- Cadence and the embedding corpus come free from the profile call, since `datePublished`
+  and the truncated text are both real signal.
+
+Corrected from earlier research: `experience` and `education` **are** returned, but company
+names come back masked as `************ ******` because the scrape is unauthenticated. Work
+history is still unusable, for a different reason than first recorded.
+
+### Bun's expect().rejects hangs on rejected pg queries
+
+`await expect(pool.query(bad)).rejects.toThrow(/…/)` never settles inside `bun test`. The
+run hangs until the outer timeout and the other tests in the file report nothing, which
+makes it look like a database or SSL problem. The identical query rejects correctly in a
+plain script.
+
+Use an explicit try/catch helper, which also asserts a failure actually happened instead of
+silently passing on a resolved promise:
+
+```ts
+async function expectFailure(run: () => Promise<unknown>, pattern: RegExp) {
+  let message = '';
+  try { await run(); } catch (error) { message = (error as Error).message; }
+  expect(message).toMatch(pattern);
+}
+```
+
+### Readability leaks CSS when it bails out
+
+`new Readability(document).parse()` returned almost nothing for a styled marketing site, so
+the `document.body.textContent` fallback fired and swallowed every `<style>` block. Tens of
+kilobytes of raw CSS went to the model on the first ICP run. It still produced correct
+sectors, which is exactly why this was easy to miss.
+
+`readPage` now removes `script, style, noscript, svg, template, iframe, link, meta` before
+parsing, runs Readability against a clone, and only falls back to `body.textContent` when
+the readable text is under a quarter of the fallback length. JSDOM gets a bare
+`VirtualConsole` so its stylesheet-parser complaints stay out of the API logs.
+
+Verified after the fix: ashbyhq.com yields 1,810 clean characters, linear.app 4,597.
+
+### Neon wants sslmode=verify-full, not require
+
+`pg` v8 warns on every connection that `sslmode=require` changes meaning in v9.
+`connectionString()` rewrites `require` to `verify-full`, which matches the current
+behaviour and works with Neon's certificates. Connection time is unchanged at roughly
+550ms.
 
 ### Relative paths in a base tsconfig resolve against the base file, not the extender
 
