@@ -1,7 +1,7 @@
 import { CollabEvent, type Actor } from '@lm/contracts';
-import { transition, type Collaboration } from '@lm/collab';
+import { allowedEvents, transition, type Collaboration } from '@lm/collab';
 import { brands, campaigns, collaborationEvents, collaborations, creators } from '@lm/db';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -29,7 +29,17 @@ export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'b
 
   app.get('/collaborations', async (request) => {
     const rows = await visibleTo(actor, session(request).userId);
-    return { items: rows };
+    const creatorNames = await namesFor(rows.map((r) => r.creatorId));
+    const campaignTitles = await titlesFor(rows.map((r) => r.campaignId));
+
+    return {
+      items: rows.map((row) => ({
+        ...row,
+        creatorName: creatorNames.get(row.creatorId) ?? 'Unknown creator',
+        campaignTitle: campaignTitles.get(row.campaignId) ?? 'Unknown campaign',
+        allowed: allowedEvents(snapshotOf(row), actor)
+      }))
+    };
   });
 
   if (actor === 'brand') {
@@ -82,11 +92,8 @@ export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'b
     const current = await ownedCollaboration(actor, userId, id);
 
     const snapshot: Collaboration = {
-      state: current.state,
-      counterRounds: current.counterRounds,
-      trackedLink: current.trackedLink,
-      postUrl: request.body.postUrl ?? current.postUrl,
-      lastCounterBy: current.lastCounterBy
+      ...snapshotOf(current),
+      postUrl: request.body.postUrl ?? current.postUrl
     };
 
     const outcome = transition(snapshot, {
@@ -166,6 +173,36 @@ export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'b
 
     return { items: rows };
   });
+}
+
+type CollabRow = typeof collaborations.$inferSelect;
+
+function snapshotOf(row: CollabRow): Collaboration {
+  return {
+    state: row.state,
+    counterRounds: row.counterRounds,
+    trackedLink: row.trackedLink,
+    postUrl: row.postUrl,
+    lastCounterBy: row.lastCounterBy
+  };
+}
+
+async function namesFor(ids: string[]) {
+  if (ids.length === 0) return new Map<string, string>();
+  const rows = await db
+    .select({ id: creators.id, name: creators.name })
+    .from(creators)
+    .where(inArray(creators.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+async function titlesFor(ids: string[]) {
+  if (ids.length === 0) return new Map<string, string>();
+  const rows = await db
+    .select({ id: campaigns.id, title: campaigns.title })
+    .from(campaigns)
+    .where(inArray(campaigns.id, [...new Set(ids)]));
+  return new Map(rows.map((r) => [r.id, r.title]));
 }
 
 async function brandFor(userId: string) {
