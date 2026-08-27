@@ -1,0 +1,1 @@
+ALTER TABLE "collaborations" ADD COLUMN "last_counter_by" "actor_kind";
