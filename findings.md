@@ -10,29 +10,26 @@ request log. This file holds the state of the code.
 
 ## Build state
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
-Right now: Phase 1 in progress. `packages/contracts`, `packages/match`, and `packages/db`
-are built and verified. Next up: `packages/ai`, then `apps/api`, then `apps/web`.
+Right now: Phases 0 to 2 are done, Phase 3 is half done. The WebSocket messenger works end
+to end; the SSE status stream is not started. Phases 4 and 5 have not begun.
 
-Design direction is settled, see the round-2 note below. Open `design-lab/imperial/brand.html` and
-`design-lab/imperial/creator.html`. These supersede everything in `design-lab/brand/`,
-`design-lab/creator/`, `design-lab/direction.html`, and `design-lab/index.html`.
+`bun test` is 124 passing, 60 of them against live Neon. Both typechecks clean.
+`bun run dev` starts the API on 3001 and the web app on 3000. Fifteen web routes build.
 
-Direction locked on the second round: **Imperial Blue `#021F94` on White Convolvulus
-`#F5F2F3`**, Inter throughout, card-and-sidebar product layout in the Raycast, Linear, and
-Stripe idiom. See `DESIGN.md`.
-
-The first round (The Masthead metaphor, Oxblood and Bone, Boska serif, hairline rules) was
-rejected: messy, wrong typeface, wrong register. Those 26 screens are dead. Do not read
-them as current.
+Design direction is settled: **Imperial Blue `#021F94` on White Convolvulus `#F5F2F3`**,
+ID Grotesk for the interface and Times for page titles, card-and-sidebar product layout.
+See `DESIGN.md`. Everything under `design-lab/brand/`, `design-lab/creator/`,
+`design-lab/index.html`, and `design-lab/direction.html` is round-one work that was
+rejected. Do not read it as current. `design-lab/imperial/` is the approved pair.
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 | Research docs, design tokens, 26 mockup screens | in progress |
-| 1 | Auth, both onboardings, catalog, match algorithm | in progress |
-| 2 | Campaigns, collaboration state machine, tracked links | in progress |
-| 3 | Messenger over WebSocket, SSE status stream | not started |
+| 0 | Research docs, design system, approved mockups | done |
+| 1 | Auth, both onboardings, catalog, match algorithm | done |
+| 2 | Campaigns, collaborations, tracked links | mostly done, see what is left |
+| 3 | Messenger over WebSocket, SSE status stream | WebSocket done, SSE not started |
 | 4 | Mocked ledger, escrow, analytics | not started |
 | 5 | Workspaces and invites | not started |
 
@@ -49,14 +46,12 @@ them as current.
 | Round 2 icon sprite | done | `design-lab/imperial/icons.js` |
 | Brand mockup | done | `design-lab/imperial/brand.html` |
 | Creator mockup | done | `design-lab/imperial/creator.html` |
-| Sign-off from Ujjwal | **waiting** | n/a |
+| Sign-off from Ujjwal | approved 2026-08-27 | n/a |
 | Round 1, all 26 screens | **superseded, rejected** | `design-lab/brand/`, `design-lab/creator/`, `design-lab/index.html`, `design-lab/direction.html` |
 
-One mockup per side. No build step, no dependencies, Inter from Google Fonts, icons inline
-as an SVG sprite.
-
-Nothing in `apps/` or `packages/` exists yet. Phase 0 output is static HTML with no build
-step and no dependencies.
+One mockup per side, static HTML with no build step. `tokens.css` and `app.css` were
+promoted into `apps/web/src/app/globals.css` and are the live design system now. The
+mockups are kept as the visual reference the code is checked against.
 
 ### Phase 1 detail
 
@@ -65,7 +60,7 @@ step and no dependencies.
 | Bun workspace skeleton | done | `package.json`, `tsconfig.json`, `bunfig.toml` |
 | Shared contracts and taxonomy | done, 12 tests | `packages/contracts/src/` |
 | Match scoring engine | done, 16 tests | `packages/match/src/score.ts` |
-| Database schema and migration | done, generated | `packages/db/src/schema.ts`, `packages/db/migrations/0000_awesome_songbird.sql` |
+| Database schema and migration | done, generated | `packages/db/src/schema.ts`, `packages/db/migrations/0000_confused_spyke.sql` |
 | Account-type trigger and pgvector indexes | done, applied and tested live | `packages/db/src/sql/guards.sql` |
 | Migration applied to Neon | done, 8 live constraint tests pass | `packages/db/src/schema.test.ts` |
 | AI layer, OpenRouter and Gemini | done | `packages/ai/src/` |
@@ -82,25 +77,108 @@ step and no dependencies.
 | Seed data, 14 creators with real embeddings | done | `packages/db/src/seed.ts` |
 | Next.js web app, shell and design system | done | `apps/web/src/` |
 | Brand login and signup pages | done, verified through the proxy | `apps/web/src/app/brand/{login,signup}/` |
-| Brand catalog page on live data | done, 14 creators render ranked | `apps/web/src/app/brand/catalog/page.tsx` |
+| Brand catalog page on live data | done, 14 creators render ranked | `apps/web/src/app/brand/(app)/catalog/page.tsx` |
 | Brand onboarding page, URL to editable ICP | done, verified against ashbyhq.com | `apps/web/src/app/brand/onboarding/` |
-| Creator auth, onboarding, identity card | done, verified with a real LinkedIn fetch | `apps/web/src/app/creator/` |
+| Creator auth, onboarding, identity card | done, verified with a real LinkedIn fetch | `apps/web/src/app/creator/{login,signup,onboarding}/`, `creator/(app)/card/` |
 | Collaboration state machine, pure | done, 23 tests, 919 assertions | `packages/collab/src/transitions.ts` |
 | Campaign and collaboration schema | done, migrated | `packages/db/migrations/0001`, `0002` |
 | Campaign and collaboration routes | done, 13 integration tests | `apps/api/src/routes/{campaign,collab}-routes.ts` |
-| Creator offers screen with counter-offers | done, verified live | `apps/web/src/app/creator/offers/` |
+| Creator offers screen with counter-offers | done, verified live | `apps/web/src/app/creator/(app)/offers/` |
 | Brand collaborations board | done, verified live | `apps/web/src/app/brand/(app)/collaborations/` |
 | Brand campaigns page and create form | done, verified live | `apps/web/src/app/brand/(app)/campaigns/` |
 | Commission a creator from the catalog | done, verified live | `apps/web/src/components/commission-button.tsx` |
-| Creator assignments, messenger, payouts | not started, nav links point at 404s | `apps/web/src/app/creator/` |
+| WebSocket protocol and contracts | done | `packages/contracts/src/messaging.ts` |
+| Messages table with per-room sequence | done, migrated | `packages/db/migrations/0003` |
+| Broker abstraction, single process today | done | `apps/api/src/messaging/broker.ts` |
+| Message persistence and history | done | `apps/api/src/messaging/service.ts` |
+| WebSocket endpoint, auth before upgrade | done, 20 tests | `apps/api/src/messaging/ws.ts` |
+| Signed connection tickets | done, 4 tests | `apps/api/src/messaging/ticket.ts` |
+| REST history and ticket routes | done | `apps/api/src/routes/message-routes.ts` |
+| Browser client, reconnect and resume | done, verified end to end | `apps/web/src/lib/use-conversation.ts` |
+| Messenger screens, both sides | done | `apps/web/src/app/{brand,creator}/(app)/messenger/` |
+| SSE status stream | not started | n/a |
+| Creator assignments and payouts | not started, nav links point at 404s | `apps/web/src/app/creator/` |
 | Brand dashboard, analytics, billing | not started, nav links point at 404s | `apps/web/src/app/brand/` |
 
-`bun test` is 104 passing, 40 of them against the live Neon database. `bun run typecheck` is
+`bun test` is 124 passing, 60 of them against the live Neon database. `bun run typecheck` is
 clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
 app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
 
 Use `127.0.0.1`, not `localhost`, when curling either server on this machine. `localhost`
 resolves to IPv6 here and nothing binds `::1`.
+
+### What is left
+
+The single list of unbuilt work. Update it here, not in six places.
+
+**Phase 2 remainder**
+
+| Item | Note |
+|---|---|
+| Campaign creation from a URL | Route accepts `source: 'url'` but nothing reads the page. `readPage` in `packages/ai` already does the work. |
+| Campaign creation from PDF, PPTX, DOCX | Needs `pdf-parse`, `mammoth`, JSZip. None installed, none proven on Bun. |
+| Accept-to-publish clock | `expire` exists in the state machine with a system actor. Nothing drives it. Needs a scheduled job. |
+| Auto-refund on expiry | The machine returns `refund_escrow`. Nothing performs it until Phase 4. |
+
+**Phase 3 remainder**
+
+| Item | Note |
+|---|---|
+| SSE status stream | `GET /events` for collaboration state changes and analytics counters. Not started. |
+| Redis broker | `Broker` interface exists with one in-process implementation. Required before a second API instance runs. |
+
+**Phase 4, not started**
+
+Wallets, double-entry `ledger_entries`, `escrow_holds`, `idempotency_keys`, and the
+analytics rollups. The state machine already emits `hold_escrow`, `release_escrow`, and
+`refund_escrow` as effects, so this phase implements the effects rather than reworking the
+machine.
+
+**Phase 5, not started**
+
+`workspace_invites`, member roles in the UI, and per-workspace filtering enforced on every
+brand query. `workspace_id` is already on every brand-scoped table.
+
+**Web pages that are linked but do not exist**
+
+Every one of these is a live 404 reachable from a sidebar.
+
+| Route | Side |
+|---|---|
+| `/brand/dashboard` | brand |
+| `/brand/analytics` | brand |
+| `/brand/billing` | brand |
+| `/brand/settings`, `/brand/help` | brand |
+| `/creator/assignments` | creator |
+| `/creator/payouts` | creator |
+| `/creator/performance` | creator |
+| `/creator/settings`, `/creator/help` | creator |
+
+**Accepted features not yet built**
+
+Tracked in the `research.md` feature request log with status `accepted`. Repeated here so
+one list answers "what is left".
+
+| Feature | Phase |
+|---|---|
+| Campaign creation from a URL or an uploaded document | 2 |
+| Accept-to-publish clock with auto-refund on expiry | 2 |
+| SSE for status changes and analytics | 3 |
+| Voice-matched draft co-pilot from the creator's post corpus | 3 |
+| Billing tab, mocked | 4 |
+| Creator earnings page | 4 |
+| Creator rotation bundles, 5 to 8 with staggered dates | 4 |
+| Brand workspaces with member invites | 5 |
+| Compare tray, pin up to 4 creators | 1, deferred |
+
+**Deferred by decision, not oversight**
+
+| Item | Decision |
+|---|---|
+| Accessibility beyond focus states | Deferred 2026-08-27 by Ujjwal. No WCAG target. |
+| Match weight sliders | The rail shows the real weights the API scored with. Dragging them is not wired. |
+| ID Grotesk licence and woff2 files | Must be purchased and dropped into `apps/web/public/fonts/`, which does not exist yet. Inter is the fallback until then. |
+| Creator supply acquisition | A launch problem, not a build problem. |
 
 ### Blocked
 
@@ -128,6 +206,10 @@ These are not suggestions. They came from the project owner.
 5. **Invoke `unslop` before writing prose** anywhere, including this file.
 6. **Update this file and `research.md` at the end of every work chunk.** A phase with
    green tests and stale state docs is not done.
+7. **Update the summary lines, not only the detail rows.** The build state header, the phase
+   table, `What is left`, and the `research.md` status table drift fastest, because adding a
+   row feels like recording progress while the sentence above it quietly goes stale. Reread
+   the header before claiming a chunk is finished.
 
 ---
 
@@ -185,13 +267,13 @@ Populated as things get built. Path plus export name so nobody greps.
 | Follower bands and their median engagement | `packages/match/src/score.ts` | `bandFor`, `BANDS` |
 | Database client and pool | `packages/db/src/client.ts` | `createPool`, `createDb`, `Db` |
 | Migration runner, wraps drizzle with extensions and guards | `packages/db/src/migrate.ts` | default script |
-| Collaboration state machine | `packages/db/src/collaboration/transitions.ts` | `transition`, `ALLOWED` (Phase 2, not built) |
+
 | LinkedIn provider interface | `packages/ai/src/linkedin/provider.ts` | `LinkedInProfileProvider` |
 | ScrapeCreators implementation | `packages/ai/src/linkedin/scrapecreators.ts` | `ScrapeCreatorsProvider` |
 | Manual paste implementation | `packages/ai/src/linkedin/manual.ts` | `ManualPasteProvider` |
 | OpenRouter client | `packages/ai/src/openrouter.ts` | `complete` |
 | Gemini embeddings | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
-| Role guards | `apps/api/src/auth/guards.ts` | `requireRole` |
+| Role guards | `apps/api/src/guards.ts` | `requireRole` |
 | Ledger operations | `apps/api/src/billing/ledger.ts` | `credit`, `debit`, `hold`, `release` (Phase 4, not built) |
 | Fastify app factory | `apps/api/src/app.ts` | `buildApp` |
 | Better Auth instance, pool, db | `apps/api/src/auth.ts` | `auth`, `db`, `pool`, `accountTypeFor` |
@@ -210,6 +292,13 @@ Populated as things get built. Path plus export name so nobody greps.
 | Invite a creator from a card | `apps/web/src/components/commission-button.tsx` | `CommissionButton` |
 | Campaign create form | `apps/web/src/components/campaign-form.tsx` | `CampaignForm` |
 | Shared collaboration row shape and labels | `apps/web/src/lib/collab.ts` | `CollabRow`, `CollabList`, `STATE_LABEL`, `NEEDS_YOU` |
+| WebSocket frames, codes, limits | `packages/contracts/src/messaging.ts` | `ClientFrame`, `ServerFrame`, `CloseCode`, `MAX_BODY_CHARS` |
+| Room fan-out, swap for Redis later | `apps/api/src/messaging/broker.ts` | `Broker`, `InProcessBroker` |
+| Participant check, append, history | `apps/api/src/messaging/service.ts` | `resolveParticipant`, `appendMessage`, `historySince`, `currentSeq` |
+| Socket lifecycle | `apps/api/src/messaging/ws.ts` | `registerMessageSocket` |
+| Signed ticket issue and verify | `apps/api/src/messaging/ticket.ts` | `issueTicket`, `readTicket` |
+| Reconnecting client hook | `apps/web/src/lib/use-conversation.ts` | `useConversation` |
+| Chat pane | `apps/web/src/components/conversation.tsx` | `Conversation` |
 | Thrown API error, halts the hook chain | `apps/api/src/http.ts` | `HttpError`, `fail` |
 | Session accessor that never returns undefined | `apps/api/src/guards.ts` | `session` |
 | Cosine calibration | `packages/match/src/score.ts` | `normalizeCosine`, `SEMANTIC_FLOOR`, `SEMANTIC_CEILING` |
@@ -333,7 +422,20 @@ build. Two things stay in on craft grounds rather than compliance grounds: desig
 states, and Radix unstyled primitives so a later retrofit is a styling job rather than a
 rewrite. Recorded so nobody reads it as an oversight.
 
-**2026-08-27, one actions component for both sides.** `CollabActions` replaced the
+**2026-08-28, WebSocket protocol is versioned and typed in contracts.** `ClientFrame` and
+`ServerFrame` are discriminated unions parsed with Zod on both ends. The server rejects an
+unrecognised frame with a typed error rather than closing, so one bad client message does
+not drop a conversation.
+
+**2026-08-28, persist before broadcast, always.** A message is committed with its sequence
+before it reaches any socket, including the sender's. Delivery is therefore recoverable from
+the database alone, and `ready` plus a cursor is enough to resume exactly.
+
+**2026-08-28, client ids are UUIDs, not ULIDs.** The plan said ULID. Ordering comes from the
+server-assigned sequence, so the client id only needs uniqueness, and `crypto.randomUUID()`
+provides that with no dependency.
+
+**2026-08-28, one actions component for both sides.** `CollabActions` replaced the
 creator-only `OfferActions`, which was starting to hold a second copy of the negotiation
 rules. It takes `side` and the server-supplied `allowed` list and nothing else.
 
@@ -514,6 +616,91 @@ role" field expecting the provider to fill it.
 Quoted average is 3.12s. Too slow to sit inside a form submit with a spinner. Creator
 onboarding step 3 needs a progress state substantial enough to hold attention, which is why
 the identity card reveal is framed as an event rather than a page load.
+
+### Message ordering is per connection, not per arrival
+
+The first version dispatched every incoming send with `void deliver(...)`. Ten messages
+typed quickly produced ten concurrent transactions racing for the same row lock. Sequences
+came out unique and monotonic, but not in the order the person typed:
+
+```
+sent:     burst 0,1,2,3,4,5,6,7,8,9
+received: burst 2,0,1,6,8,9,7,3,5,4
+```
+
+A row lock serialises access. It does not preserve arrival order, and neither does the
+async dispatch that queues behind it.
+
+Each connection now owns a promise chain, so its own sends are applied in the order they
+arrived. Total order across different senders stays arbitrary, which is correct: two people
+typing at once have no meaningful relative order until the server assigns one.
+
+### Sequence assignment holds a row lock, on purpose
+
+`appendMessage` runs in one transaction: `SELECT ... FOR UPDATE` on the collaboration, then
+a check for the client id, then `UPDATE ... message_seq + 1`, then the insert. The lock
+comes first so the idempotency check cannot race, and so a retried send never burns a
+sequence number.
+
+A global `bigserial` would have been simpler and wrong. Concurrent inserts commit out of
+order, so a reader can observe seq 5 before seq 4 exists, resume from 5, and silently lose
+a message. A per-room counter under a lock has no such gap.
+
+### Broker messages are buffered until history replay finishes
+
+A message published while a connection is still loading its history would otherwise be sent
+first, advance `lastSentSeq` past the replay, and cause the replay to be skipped as stale.
+
+The connection starts in a `loading` phase that pushes live messages into a buffer. After
+`ready` and the replay it flips to `live`, sorts the buffer by seq, and drains it through
+the same de-duplicating emit. Dedupe is by `seq > lastSentSeq`, which is constant memory,
+unlike the set of delivered ids the first draft used.
+
+### Open sockets stop Fastify from closing
+
+`app.close()` hung forever in tests. WebSocket connections never drain on their own, so
+Fastify waits for them indefinitely. The symptom is a test run that prints no summary and
+never exits, which reads like a hang in the tests themselves.
+
+`registerMessageSocket` tracks every open socket and closes them from an `onClose` hook with
+`CloseCode.serverShutdown`, and the Fastify factory sets `forceCloseConnections: true`. This
+is a real graceful-shutdown requirement, not a test workaround.
+
+### Browsers cannot set headers on a WebSocket, so the socket uses a signed ticket
+
+The web app reaches the API through a same-origin `/bff` rewrite so cookies work. That does
+not extend to WebSockets: Next does not reliably proxy upgrades, and connecting straight to
+the API origin sends no cookie because the cookie belongs to the web origin.
+
+The client therefore POSTs to `/bff/{side}/collaborations/:id/ws-ticket` over the proxy,
+which authenticates by cookie, and receives an HMAC-signed ticket bound to the user, the
+account type, and that one collaboration, valid for 30 seconds. The socket connects directly
+to the API with `?ticket=`.
+
+The ticket is verified with `timingSafeEqual`. It is not single-use: the 30 second window is
+the bound. Tests cover a tampered signature and a ticket presented for a different
+conversation.
+
+Cookie auth still works on the socket and is what the server-side tests use, so nothing
+depends on tickets existing.
+
+### Bun does not implement the ws 'unexpected-response' event
+
+```
+[bun] Warning: ws.WebSocket 'unexpected-response' event is not implemented in bun
+```
+
+A rejected upgrade cannot be observed through the `ws` client under Bun. The server behaves
+correctly: `HTTP/1.1 401 Unauthorized` with a JSON body, verified by opening a raw
+`node:net` socket and writing the upgrade request by hand. The rejection tests assert on
+those bytes, which is a stronger assertion than the client event would have been.
+
+### The sender receives its own message back
+
+`ack` carries the assigned sequence, and the full message is echoed to the sender as well.
+The client needs the canonical row, its server timestamp and resolved sender name, to
+replace the optimistic entry. Assertions about "what the other side received" must filter on
+`message.sender`, or they will match the echo.
 
 ### The UI never decides what a button should do
 
