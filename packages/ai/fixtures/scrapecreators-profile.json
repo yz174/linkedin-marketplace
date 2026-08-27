@@ -1,0 +1,186 @@
+{
+  "success": true,
+  "credits_remaining": 98,
+  "credits_charged": 1,
+  "name": "Bill Gates",
+  "image": "https://media.licdn.com/dms/image/v2/D5603AQF-RYZP55jmXA/profile-displayphoto-shrink_200_200/B56ZRi8g.aGsAY-/0/1736826818802?e=2147483647&v=beta&t=bKWfN6UwwtiCqFWsG7rBELbd48qJOAMLdxhBzzkJV0k",
+  "location": "Seattle, Washington, United States",
+  "followers": 40596882,
+  "connections": "",
+  "about": "Chair of the Gates Foundation. Founder of Breakthrough Energy. Co-founder of Microsoft…",
+  "recentPosts": [
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_this-unprecedented-technology-demands-an-activity-7498545384043036672-c2bZ",
+      "id": "7498545384043036672",
+      "title": "This unprecedented technology demands an unprecedented response.",
+      "datePublished": "2026-08-27T01:02:15.722Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_a-city-mobilizes-against-a-stubborn-health-activity-7497818529442742272-yNR5",
+      "id": "7497818529442742272",
+      "title": "After a major surge in dengue fever, the Brazilian city of Belém went all in to fight the virus. The result? They cut mosquito-borne diseases by 70% compared to the year prior: https://nyti.ms/3SNKhIO",
+      "datePublished": "2026-08-25T00:54:00.082Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_the-art-and-science-of-listening-bill-gates-activity-7497770271387459584--NvM",
+      "id": "7497770271387459584",
+      "title": "We have the opportunity to usher in a future where no more children die from malaria. Let’s seize it: https://lnkd.in/e8JT_QF4\n​",
+      "datePublished": "2026-08-24T21:42:14.479Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_an-invasive-mosquito-is-spreading-with-alarming-activity-7497530070492770304-jmsA",
+      "id": "7497530070492770304",
+      "title": "Malaria is an ever-evolving challenge. But better monitoring, data, and new tools can help us stay ahead—even as mosquitoes adapt and transmission patterns change: https://b-gat.es/4gnuZCo",
+      "datePublished": "2026-08-24T05:47:46.160Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_imso-impressed-bydr-lina-findaswork-activity-7496954467196518400-UOUr",
+      "id": "7496954467196518400",
+      "title": "I’m so impressed by Dr. Lina Finda’s work to ensure that African communities have a voice in how the world fights malaria.",
+      "datePublished": "2026-08-22T15:40:31.604Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_the-art-and-science-of-listening-bill-gates-activity-7496663489826955264-e-wy",
+      "id": "7496663489826955264",
+      "title": "Dr. Lina Finda says her job is to “listen,” but her work goes far beyond that. She’s making sure the people who are most affected by malaria have a say in how the disease is fought: https://lnkd.in/ev46WpCq",
+      "datePublished": "2026-08-21T20:24:17.156Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_five-african-countries-end-polio-outbreaks-activity-7496603472088305664-VVLA",
+      "id": "7496603472088305664",
+      "title": "Good news alert: Five countries in Africa just successfully stopped polio outbreaks. This is an incredible achievement for the region—and a direct result of the commitment of governments, health workers, and the affected communities themselves.\n\nWe're closer than ever to ending polio, and moments like this make me believe we can get there: https://b-gat.es/3U9Usry",
+      "datePublished": "2026-08-21T16:25:47.822Z",
+      "activityType": "Post"
+    },
+    {
+      "link": "https://www.linkedin.com/posts/williamhgates_itsthe-smallest-country-in-south-america-activity-7496352788071813121-CH17",
+      "id": "7496352788071813121",
+      "title": "It’s the smallest country in South America with some big news: Suriname is officially malaria-free. It’s amazing progress to celebrate this World Mosquito Day.",
+      "datePublished": "2026-08-20T23:49:40.110Z",
+      "activityType": "Post"
+    }
+  ],
+  "experience": [
+    {
+      "@type": "Organization",
+      "name": "Gates Foundation",
+      "url": "https://www.linkedin.com/company/gates-foundation",
+      "member": {
+        "@type": "OrganizationRole"
+      }
+    },
+    {
+      "@type": "Organization",
+      "name": "************ ****** ",
+      "member": {
+        "@type": "OrganizationRole"
+      }
+    },
+    {
+      "@type": "Organization",
+      "name": "*********",
+      "member": {
+        "@type": "OrganizationRole"
+      }
+    }
+  ],
+  "articles": [
+    {
+      "headline": "The turbulent AI era is here. The choices we make now are critical.",
+      "author": "Bill Gates",
+      "datePublished": "2026-08-26T07:03:26.000+00:00",
+      "url": "https://www.linkedin.com/pulse/turbulent-ai-era-here-choices-we-make-now-critical-bill-gates-kkmze",
+      "articleBody": ""
+    },
+    {
+      "headline": "Small bugs, big breakthroughs",
+      "author": "Bill Gates",
+      "datePublished": "2026-08-20T00:46:04.000+00:00",
+      "url": "https://www.linkedin.com/pulse/small-bugs-big-breakthroughs-bill-gates-rq4qe",
+      "articleBody": ""
+    },
+    {
+      "headline": "Bad news isn’t the only news",
+      "author": "Bill Gates",
+      "datePublished": "2026-08-10T15:22:45.000+00:00",
+      "url": "https://www.linkedin.com/pulse/bad-news-isnt-only-bill-gates-tl0bc",
+      "image": "https://media.licdn.com/dms/image/v2/D5612AQEkQ0qc4Rgq3g/article-cover_image-shrink_720_1280/B56Z_sOoZ0GsAQ-/0/1786374686630?e=2147483647&v=beta&t=-stCWN6KYl9Q8zJBTUWI4PgDhzSor3Du4-9D7_DvaCE",
+      "articleBody": ""
+    },
+    {
+      "headline": "The best things I read, listened to, and watched this year",
+      "author": "Bill Gates",
+      "datePublished": "2026-07-30T15:36:01.000+00:00",
+      "url": "https://www.linkedin.com/pulse/best-things-i-read-listened-watched-year-bill-gates-saopc",
+      "image": "https://media.licdn.com/dms/image/v2/D4E12AQFuGC-ILTwDIA/article-cover_image-shrink_720_1280/B4EZ.0ivrdIkAQ-/0/1785440435195?e=2147483647&v=beta&t=UzAPg6FRRAENPa4zUS5ULz6NRHbEuMDwEIkmd_nrWeM",
+      "articleBody": ""
+    },
+    {
+      "headline": "Memories from an inspiring trip to Rwanda",
+      "author": "Bill Gates",
+      "datePublished": "2026-07-26T16:59:42.000+00:00",
+      "url": "https://www.linkedin.com/pulse/memories-from-inspiring-trip-rwanda-bill-gates-ojyye",
+      "image": "https://media.licdn.com/dms/image/v2/D4E12AQHSV3ES4S-Cuw/article-cover_image-shrink_720_1280/B4EZ.fRL7dJ0AQ-/0/1785083510790?e=2147483647&v=beta&t=v-g_uv0TSKbSQzYu5Is8w15ZuODA_KjsEenQqgn7v8M",
+      "articleBody": ""
+    },
+    {
+      "headline": "\"AIDS-free\" generation is no empty promise",
+      "author": "Bill Gates",
+      "datePublished": "2026-07-12T17:14:33.000+00:00",
+      "url": "https://www.linkedin.com/pulse/aids-free-generation-empty-promise-bill-gates-hbvue",
+      "image": "https://media.licdn.com/dms/image/v2/D4E12AQE9z5HnHXNBsQ/article-cover_image-shrink_720_1280/B4EZ9XOTLKJEAQ-/0/1783874794451?e=2147483647&v=beta&t=MRRY8W-94LfA6nZvCNs5pIUE6bDQMdQB7LDu3_Tre0s",
+      "articleBody": ""
+    },
+    {
+      "headline": "We’re entering a golden age of Alzheimer’s research",
+      "author": "Bill Gates",
+      "datePublished": "2026-06-07T21:12:07.000+00:00",
+      "url": "https://www.linkedin.com/pulse/were-entering-golden-age-alzheimers-research-bill-gates-7re2e",
+      "articleBody": ""
+    },
+    {
+      "headline": "Every year, 2 million babies are stillborn. A simple retinal scanner can change that.",
+      "author": "Bill Gates",
+      "datePublished": "2026-05-02T00:35:55.000+00:00",
+      "url": "https://www.linkedin.com/pulse/every-year-2-million-babies-stillborn-simple-retinal-scanner-gates-zxgkc",
+      "articleBody": ""
+    },
+    {
+      "headline": "The next generation of electricity is almost here",
+      "author": "Bill Gates",
+      "datePublished": "2026-03-27T22:19:20.000+00:00",
+      "url": "https://www.linkedin.com/pulse/next-generation-electricity-almost-here-bill-gates-osuhc",
+      "articleBody": ""
+    },
+    {
+      "headline": "A phone call that saves lives",
+      "author": "Bill Gates",
+      "datePublished": "2026-03-08T01:47:00.000+00:00",
+      "url": "https://www.linkedin.com/pulse/phone-call-saves-lives-bill-gates-yspvc",
+      "articleBody": ""
+    }
+  ],
+  "activity": [],
+  "education": [
+    {
+      "@type": "EducationalOrganization",
+      "name": "Harvard University",
+      "url": "https://www.linkedin.com/school/harvard-university/",
+      "member": {
+        "@type": "OrganizationRole",
+        "startDate": 1973,
+        "endDate": 1975
+      }
+    }
+  ],
+  "publications": [],
+  "projects": [],
+  "recommendations": [],
+  "similarProfiles": []
+}
