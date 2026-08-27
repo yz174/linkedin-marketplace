@@ -5,6 +5,7 @@ import {
   boolean,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -36,6 +37,15 @@ export const collabState = pgEnum('collab_state', COLLAB_STATES);
 export const collabEvent = pgEnum('collab_event', COLLAB_EVENTS);
 export const actorKind = pgEnum('actor_kind', ['brand', 'creator', 'system']);
 export const campaignSource = pgEnum('campaign_source', ['ai', 'url', 'document']);
+export const walletOwner = pgEnum('wallet_owner', ['workspace', 'creator', 'escrow', 'platform']);
+export const ledgerKind = pgEnum('ledger_kind', [
+  'topup',
+  'hold',
+  'release',
+  'refund',
+  'withdraw'
+]);
+export const holdState = pgEnum('hold_state', ['held', 'released', 'refunded']);
 
 export const users = pgTable(
   'user',
@@ -211,6 +221,7 @@ export const campaigns = pgTable(
     budgetMaxMinor: bigint('budget_max_minor', { mode: 'number' }).notNull(),
     source: campaignSource('source').notNull(),
     sourceRef: text('source_ref'),
+    landingUrl: text('landing_url').notNull().default(''),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
@@ -241,6 +252,7 @@ export const collaborations = pgTable(
     draft: text('draft'),
     publishBy: timestamp('publish_by', { withTimezone: true }),
     invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
     respondedAt: timestamp('responded_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },
@@ -293,5 +305,118 @@ export const messages = pgTable(
     index('messages_collab_seq_idx').on(t.collaborationId, t.seq),
     check('messages_seq_positive', sql`${t.seq} > 0`),
     check('messages_body_length', sql`char_length(${t.body}) between 1 and 4000`)
+  ]
+);
+
+export const wallets = pgTable(
+  'wallets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    owner: walletOwner('owner').notNull(),
+    workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+    creatorId: uuid('creator_id').references(() => creators.id, { onDelete: 'cascade' }),
+    balanceMinor: bigint('balance_minor', { mode: 'number' }).notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    uniqueIndex('wallets_workspace_key').on(t.workspaceId),
+    uniqueIndex('wallets_creator_key').on(t.creatorId),
+    uniqueIndex('wallets_singleton_key')
+      .on(t.owner)
+      .where(sql`${t.owner} in ('escrow', 'platform')`),
+    check(
+      'wallets_owner_matches_column',
+      sql`(${t.owner} = 'workspace' and ${t.workspaceId} is not null and ${t.creatorId} is null)
+       or (${t.owner} = 'creator' and ${t.creatorId} is not null and ${t.workspaceId} is null)
+       or (${t.owner} in ('escrow', 'platform') and ${t.workspaceId} is null and ${t.creatorId} is null)`
+    ),
+    check(
+      'wallets_only_platform_goes_negative',
+      sql`${t.owner} = 'platform' or ${t.balanceMinor} >= 0`
+    )
+  ]
+);
+
+export const ledgerEntries = pgTable(
+  'ledger_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    entryGroup: uuid('entry_group').notNull(),
+    walletId: uuid('wallet_id')
+      .notNull()
+      .references(() => wallets.id, { onDelete: 'cascade' }),
+    kind: ledgerKind('kind').notNull(),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    collaborationId: uuid('collaboration_id').references(() => collaborations.id, {
+      onDelete: 'set null'
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    index('ledger_entries_group_idx').on(t.entryGroup),
+    index('ledger_entries_wallet_idx').on(t.walletId, t.createdAt),
+    uniqueIndex('ledger_entries_group_wallet_key').on(t.entryGroup, t.walletId),
+    check('ledger_entries_never_zero', sql`${t.amountMinor} <> 0`)
+  ]
+);
+
+export const escrowHolds = pgTable(
+  'escrow_holds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    collaborationId: uuid('collaboration_id')
+      .notNull()
+      .references(() => collaborations.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    amountMinor: bigint('amount_minor', { mode: 'number' }).notNull(),
+    state: holdState('state').notNull().default('held'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    settledAt: timestamp('settled_at', { withTimezone: true })
+  },
+  (t) => [
+    uniqueIndex('escrow_holds_collab_key').on(t.collaborationId),
+    index('escrow_holds_open_idx').on(t.state, t.workspaceId),
+    check('escrow_holds_amount_positive', sql`${t.amountMinor} > 0`),
+    check(
+      'escrow_holds_settled_has_time',
+      sql`${t.state} = 'held' or ${t.settledAt} is not null`
+    )
+  ]
+);
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    key: text('key').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    requestHash: text('request_hash').notNull(),
+    statusCode: integer('status_code').notNull(),
+    responseBody: jsonb('response_body').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('idempotency_keys_user_idx').on(t.userId, t.createdAt)]
+);
+
+export const linkClicks = pgTable(
+  'link_clicks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    collaborationId: uuid('collaboration_id')
+      .notNull()
+      .references(() => collaborations.id, { onDelete: 'cascade' }),
+    visitorHash: text('visitor_hash').notNull(),
+    clickedOn: date('clicked_on').notNull(),
+    hits: integer('hits').notNull().default(1),
+    firstAt: timestamp('first_at', { withTimezone: true }).notNull().defaultNow(),
+    lastAt: timestamp('last_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    uniqueIndex('link_clicks_visitor_day_key').on(t.collaborationId, t.visitorHash, t.clickedOn),
+    index('link_clicks_collab_idx').on(t.collaborationId, t.clickedOn),
+    check('link_clicks_hits_positive', sql`${t.hits} > 0`)
   ]
 );
