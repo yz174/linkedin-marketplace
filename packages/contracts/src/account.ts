@@ -38,6 +38,7 @@ export const ERROR_CODES = [
   'wrong_account_type',
   'not_found',
   'thin_page',
+  'illegal_transition',
   'validation_failed'
 ] as const;
 
