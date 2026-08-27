@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { db } from '../auth';
-import { brandRoom, creatorRoom, type StatusBus } from '../events/bus';
+import { publishCollabChange, type StatusBus } from '../events/bus';
 import { session } from '../guards';
 import { HttpError } from '../http';
 import { existingWorkspace } from './brand-routes';
@@ -32,25 +32,11 @@ export function collabRoutes(
 ) {
   const app = instance.withTypeProvider<ZodTypeProvider>();
 
-  const announce = async (
+  const announce = (
     row: CollabRow,
     brandId: string,
     change: { from: CollabState; to: CollabState; actor: Actor }
-  ) => {
-    const frame = {
-      t: 'collab_changed' as const,
-      collaborationId: row.id,
-      reference: row.reference,
-      from: change.from,
-      to: change.to,
-      actor: change.actor,
-      feeMinor: row.feeMinor,
-      counterFeeMinor: row.counterFeeMinor,
-      updatedAt: row.updatedAt.toISOString()
-    };
-    await bus.publish(brandRoom(brandId), frame);
-    await bus.publish(creatorRoom(row.creatorId), frame);
-  };
+  ) => publishCollabChange(bus, { row, brandId, ...change });
 
   app.get('/collaborations', async (request) => {
     const rows = await visibleTo(actor, session(request).userId);

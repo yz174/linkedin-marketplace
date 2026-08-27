@@ -8,17 +8,17 @@
     "start": "bun src/server.ts"
   },
   "dependencies": {
+    "@fastify/websocket": "^11.0.2",
     "@lm/ai": "workspace:*",
+    "@lm/collab": "workspace:*",
     "@lm/contracts": "workspace:*",
     "@lm/db": "workspace:*",
     "@lm/match": "workspace:*",
     "better-auth": "^1.2.7",
+    "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.1",
     "fastify-type-provider-zod": "^4.0.2",
-    "zod": "^3.24.1",
-    "drizzle-orm": "^0.38.3",
-    "@lm/collab": "workspace:*",
-    "@fastify/websocket": "^11.0.2"
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/ws": "^8.5.13"

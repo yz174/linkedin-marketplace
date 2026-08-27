@@ -1,6 +1,6 @@
 import websocket from '@fastify/websocket';
 import type { Message } from '@lm/contracts';
-import Fastify, { type FastifyError } from 'fastify';
+import Fastify, { type FastifyError, type FastifyRequest } from 'fastify';
 import {
   serializerCompiler,
   validatorCompiler,
@@ -34,6 +34,17 @@ export function buildApp(
   app.register(websocket, {
     options: { maxPayload: 64 * 1024 }
   });
+
+  app.addContentTypeParser<Buffer>(
+    'multipart/form-data',
+    { parseAs: 'buffer' },
+    async (request: FastifyRequest, body: Buffer) => {
+      const upload = new Response(new Uint8Array(body), {
+        headers: { 'content-type': String(request.headers['content-type']) }
+      });
+      return upload.formData();
+    }
+  );
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
