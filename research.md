@@ -24,10 +24,9 @@ Last updated: 2026-08-28
 | Round 2 direction: Imperial Blue, ID Grotesk + Times | approved 2026-08-27 | n/a |
 | ID Grotesk licence and woff2 files | **open**, must be purchased | before the web app ships |
 | Document parsing libs under Bun | not started | before campaign uploads |
-| Redis pub/sub for multi-instance sockets | not started, interface in place | before a second API instance runs |
 | Creator supply acquisition strategy | not started | before launch, not before build |
 | WebSocket transport, auth on upgrade, resume | done, 24 tests | if the protocol version changes |
-| SSE for status and analytics | not started | before Phase 3 closes |
+| SSE for status and analytics | done, 4 tests, cookie auth through the /bff rewrite | if the frame set grows |
 
 Open questions:
 
@@ -388,7 +387,7 @@ verified. `partial` names what is missing. Update this column when a feature lan
 | 2026-08-27 | Ujjwal | Campaign creation three ways: AI, URL, document upload | Brands already have briefs in PDF and PPTX | 2 | accepted |
 | 2026-08-27 | Ujjwal | Collaborations tab tracking every status from booking to payment | The core operational surface | 2 | shipped |
 | 2026-08-27 | Ujjwal | Messenger over WebSocket | Negotiation happens in conversation | 3 | shipped |
-| 2026-08-27 | Ujjwal | SSE for status changes and analytics | Live updates without polling | 3 | accepted |
+| 2026-08-27 | Ujjwal | SSE for status changes and analytics | Live updates without polling | 3 | shipped |
 | 2026-08-27 | Ujjwal | Billing tab, mocked | Fund flow without a payment integration | 4 | accepted |
 | 2026-08-27 | Ujjwal | Creator earnings page | Supply-side transparency | 4 | accepted |
 | 2026-08-27 | Ujjwal | Brand workspaces with member invites | Marketing teams are not one person | 5 | accepted |

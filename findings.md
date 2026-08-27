@@ -12,10 +12,10 @@ request log. This file holds the state of the code.
 
 Last updated: 2026-08-28
 
-Right now: Phases 0 to 2 are done, Phase 3 is half done. The WebSocket messenger works end
-to end; the SSE status stream is not started. Phases 4 and 5 have not begun.
+Right now: Phases 0, 1 and 3 are done. Phase 2 is missing campaign import and the expiry
+clock. Phases 4 and 5 have not begun.
 
-`bun test` is 124 passing, 60 of them against live Neon. Both typechecks clean.
+`bun test` is 128 passing, 64 of them against live Neon. Both typechecks clean.
 `bun run dev` starts the API on 3001 and the web app on 3000. Fifteen web routes build.
 
 Design direction is settled: **Imperial Blue `#021F94` on White Convolvulus `#F5F2F3`**,
@@ -29,7 +29,7 @@ rejected. Do not read it as current. `design-lab/imperial/` is the approved pair
 | 0 | Research docs, design system, approved mockups | done |
 | 1 | Auth, both onboardings, catalog, match algorithm | done |
 | 2 | Campaigns, collaborations, tracked links | mostly done, see what is left |
-| 3 | Messenger over WebSocket, SSE status stream | WebSocket done, SSE not started |
+| 3 | Messenger over WebSocket, SSE status stream | done |
 | 4 | Mocked ledger, escrow, analytics | not started |
 | 5 | Workspaces and invites | not started |
 
@@ -54,6 +54,8 @@ promoted into `apps/web/src/app/globals.css` and are the live design system now.
 mockups are kept as the visual reference the code is checked against.
 
 ### Phase 1 detail
+
+Auth, both onboardings, the catalog, and the match algorithm. All done.
 
 | Item | Status | Files |
 |---|---|---|
@@ -80,6 +82,15 @@ mockups are kept as the visual reference the code is checked against.
 | Brand catalog page on live data | done, 14 creators render ranked | `apps/web/src/app/brand/(app)/catalog/page.tsx` |
 | Brand onboarding page, URL to editable ICP | done, verified against ashbyhq.com | `apps/web/src/app/brand/onboarding/` |
 | Creator auth, onboarding, identity card | done, verified with a real LinkedIn fetch | `apps/web/src/app/creator/{login,signup,onboarding}/`, `creator/(app)/card/` |
+| Creator card page | done | `apps/web/src/app/creator/(app)/card/` |
+
+### Phase 2 detail
+
+Campaigns, collaborations, tracked links. The negotiation half is done. Campaign import and
+the expiry clock are not, and both are listed under what is left.
+
+| Item | Status | Files |
+|---|---|---|
 | Collaboration state machine, pure | done, 23 tests, 919 assertions | `packages/collab/src/transitions.ts` |
 | Campaign and collaboration schema | done, migrated | `packages/db/migrations/0001`, `0002` |
 | Campaign and collaboration routes | done, 13 integration tests | `apps/api/src/routes/{campaign,collab}-routes.ts` |
@@ -87,6 +98,17 @@ mockups are kept as the visual reference the code is checked against.
 | Brand collaborations board | done, verified live | `apps/web/src/app/brand/(app)/collaborations/` |
 | Brand campaigns page and create form | done, verified live | `apps/web/src/app/brand/(app)/campaigns/` |
 | Commission a creator from the catalog | done, verified live | `apps/web/src/components/commission-button.tsx` |
+| Tracked link enforced in the machine and in a CHECK constraint | done | `packages/collab/src/transitions.ts`, `packages/db/src/schema.ts` |
+| Campaign creation from a URL | **not started** | n/a |
+| Campaign creation from a document | **not started** | n/a |
+| Accept-to-publish clock and auto-refund | **not started** | n/a |
+
+### Phase 3 detail
+
+Messenger over WebSocket and the SSE status stream. All done.
+
+| Item | Status | Files |
+|---|---|---|
 | WebSocket protocol and contracts | done | `packages/contracts/src/messaging.ts` |
 | Messages table with per-room sequence | done, migrated | `packages/db/migrations/0003` |
 | Broker abstraction, single process today | done | `apps/api/src/messaging/broker.ts` |
@@ -96,11 +118,17 @@ mockups are kept as the visual reference the code is checked against.
 | REST history and ticket routes | done | `apps/api/src/routes/message-routes.ts` |
 | Browser client, reconnect and resume | done, verified end to end | `apps/web/src/lib/use-conversation.ts` |
 | Messenger screens, both sides | done | `apps/web/src/app/{brand,creator}/(app)/messenger/` |
-| SSE status stream | not started | n/a |
-| Creator assignments and payouts | not started, nav links point at 404s | `apps/web/src/app/creator/` |
-| Brand dashboard, analytics, billing | not started, nav links point at 404s | `apps/web/src/app/brand/` |
+| Status event contract | done | `packages/contracts/src/events.ts` |
+| Status bus and room keys | done | `apps/api/src/events/bus.ts` |
+| SSE status stream, both sides | done, 4 tests | `apps/api/src/events/sse.ts` |
+| Live refresh on state change | done, verified through the proxy | `apps/web/src/components/live-collabs.tsx` |
+| Shutdown drains accepted writes | done, fixed a real deadlock | `apps/api/src/messaging/ws.ts` |
 
-`bun test` is 124 passing, 60 of them against the live Neon database. `bun run typecheck` is
+### Phases 4 and 5
+
+Not started. Scope is under what is left. The nine sidebar links that 404 belong here.
+
+`bun test` is 128 passing, 64 of them against the live Neon database. `bun run typecheck` is
 clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
 app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
 
@@ -119,13 +147,6 @@ The single list of unbuilt work. Update it here, not in six places.
 | Campaign creation from PDF, PPTX, DOCX | Needs `pdf-parse`, `mammoth`, JSZip. None installed, none proven on Bun. |
 | Accept-to-publish clock | `expire` exists in the state machine with a system actor. Nothing drives it. Needs a scheduled job. |
 | Auto-refund on expiry | The machine returns `refund_escrow`. Nothing performs it until Phase 4. |
-
-**Phase 3 remainder**
-
-| Item | Note |
-|---|---|
-| SSE status stream | `GET /events` for collaboration state changes and analytics counters. Not started. |
-| Redis broker | `Broker` interface exists with one in-process implementation. Required before a second API instance runs. |
 
 **Phase 4, not started**
 
@@ -163,7 +184,6 @@ one list answers "what is left".
 |---|---|
 | Campaign creation from a URL or an uploaded document | 2 |
 | Accept-to-publish clock with auto-refund on expiry | 2 |
-| SSE for status changes and analytics | 3 |
 | Voice-matched draft co-pilot from the creator's post corpus | 3 |
 | Billing tab, mocked | 4 |
 | Creator earnings page | 4 |
@@ -179,6 +199,7 @@ one list answers "what is left".
 | Match weight sliders | The rail shows the real weights the API scored with. Dragging them is not wired. |
 | ID Grotesk licence and woff2 files | Must be purchased and dropped into `apps/web/public/fonts/`, which does not exist yet. Inter is the fallback until then. |
 | Creator supply acquisition | A launch problem, not a build problem. |
+| A second API process | Ruled out 2026-08-28 by Ujjwal. One process, `InProcessBroker`, no message bus. |
 
 ### Blocked
 
@@ -293,10 +314,15 @@ Populated as things get built. Path plus export name so nobody greps.
 | Campaign create form | `apps/web/src/components/campaign-form.tsx` | `CampaignForm` |
 | Shared collaboration row shape and labels | `apps/web/src/lib/collab.ts` | `CollabRow`, `CollabList`, `STATE_LABEL`, `NEEDS_YOU` |
 | WebSocket frames, codes, limits | `packages/contracts/src/messaging.ts` | `ClientFrame`, `ServerFrame`, `CloseCode`, `MAX_BODY_CHARS` |
-| Room fan-out, swap for Redis later | `apps/api/src/messaging/broker.ts` | `Broker`, `InProcessBroker` |
+| Room fan-out, generic over its payload | `apps/api/src/messaging/broker.ts` | `Broker`, `InProcessBroker` |
 | Participant check, append, history | `apps/api/src/messaging/service.ts` | `resolveParticipant`, `appendMessage`, `historySince`, `currentSeq` |
 | Socket lifecycle | `apps/api/src/messaging/ws.ts` | `registerMessageSocket` |
 | Signed ticket issue and verify | `apps/api/src/messaging/ticket.ts` | `issueTicket`, `readTicket` |
+| Status frames over SSE | `packages/contracts/src/events.ts` | `StatusFrame`, `CollabChanged`, `StatusHello` |
+| Status room keys and bus type | `apps/api/src/events/bus.ts` | `StatusBus`, `brandRoom`, `creatorRoom` |
+| SSE status endpoint | `apps/api/src/events/sse.ts` | `statusStream` |
+| Live refresh on a status frame | `apps/web/src/components/live-collabs.tsx` | `LiveCollabs` |
+| Brand and creator row owners, shared with the stream | `apps/api/src/routes/collab-routes.ts` | `brandFor`, `creatorFor` |
 | Reconnecting client hook | `apps/web/src/lib/use-conversation.ts` | `useConversation` |
 | Chat pane | `apps/web/src/components/conversation.tsx` | `Conversation` |
 | Thrown API error, halts the hook chain | `apps/api/src/http.ts` | `HttpError`, `fail` |
@@ -434,6 +460,28 @@ the database alone, and `ready` plus a cursor is enough to resume exactly.
 **2026-08-28, client ids are UUIDs, not ULIDs.** The plan said ULID. Ordering comes from the
 server-assigned sequence, so the client id only needs uniqueness, and `crypto.randomUUID()`
 provides that with no dependency.
+
+**2026-08-28, the status stream authenticates by cookie through the `/bff` rewrite.** The
+WebSocket needed a signed ticket because a browser cannot put headers on a socket and Next
+does not proxy upgrades. Neither limit applies to SSE: `EventSource` sends same-origin
+cookies, and the Next rewrite streams `text/event-stream` without buffering, verified with
+`curl -N` against `http://127.0.0.1:3000/bff/brand/events`. The endpoint therefore sits
+inside the existing guarded scope and reuses `requireRole`. No second auth path.
+
+**2026-08-28, the broker is generic over its payload.** `Broker<T>` and `InProcessBroker<T>`
+carry `Message` for the socket and `CollabChanged` for the status stream. One implementation
+for both, and the type parameter stops either stream from delivering the other's frames.
+
+**2026-08-28, one API process, no message bus.** Ujjwal's call. A second instance would need
+the broker backed by something shared, and this product does not run one. `InProcessBroker`
+is the implementation, not a placeholder. Delete the interface if a second implementation
+never arrives.
+
+**2026-08-28, the status frame does not carry the row.** It carries the identity of the
+change: collaboration, reference, from, to, actor, fee. The client calls `router.refresh()`,
+so the server component refetches and stays the only place that decides what a row and its
+`allowed` array look like. A frame that carried the row would be a second copy of state to
+keep in sync, and the stat cards recompute from the refetched rows for free.
 
 **2026-08-28, one actions component for both sides.** `CollabActions` replaced the
 creator-only `OfferActions`, which was starting to hold a second copy of the negotiation
@@ -656,6 +704,26 @@ The connection starts in a `loading` phase that pushes live messages into a buff
 the same de-duplicating emit. Dedupe is by `seq > lastSentSeq`, which is constant memory,
 unlike the set of delivered ids the first draft used.
 
+### Shutdown must drain accepted writes, not only close sockets
+
+`app.close()` closed every socket and returned while `appendMessage` transactions were still
+open. In the test suite that met a cleanup `DELETE FROM users` and deadlocked:
+
+```
+deadlock detected
+Process 937 waits for ShareLock on transaction 17599; blocked by process 876.
+while deleting tuple in relation "collaborations"
+```
+
+The delete cascade held a lock on one collaboration and waited for another; the in-flight
+insert into `messages` held that one under `SELECT ... FOR UPDATE` and waited for an FK share
+lock on the first. Reproducible across full runs, invisible when either file ran alone.
+
+`registerMessageSocket` now tracks the tail of every connection's send chain in a `writing`
+set and the `onClose` hook awaits `Promise.allSettled` over it after closing the sockets. A
+message the server acknowledged is committed before the process goes away, which is the
+behaviour a shutdown owed anyway. A longer sleep in the test would have hidden it.
+
 ### Open sockets stop Fastify from closing
 
 `app.close()` hung forever in tests. WebSocket connections never drain on their own, so
@@ -665,6 +733,16 @@ never exits, which reads like a hang in the tests themselves.
 `registerMessageSocket` tracks every open socket and closes them from an `onClose` hook with
 `CloseCode.serverShutdown`, and the Fastify factory sets `forceCloseConnections: true`. This
 is a real graceful-shutdown requirement, not a test workaround.
+
+### The status stream needs writeHead, not reply.send
+
+Fastify owns the response until `reply.hijack()`. The SSE handler resolves its room, hijacks,
+then writes headers on `reply.raw` itself, which means the CORS headers set by the `onRequest`
+hook never flush and have to be repeated in the `writeHead` call. `x-accel-buffering: no` and
+`cache-control: no-transform` are there for proxies that would otherwise hold the stream.
+
+Open streams block `app.close()` exactly like open sockets, so `statusStream` keeps its own
+set of responses and ends them from an `onClose` hook.
 
 ### Browsers cannot set headers on a WebSocket, so the socket uses a signed ticket
 
@@ -701,6 +779,14 @@ those bytes, which is a stronger assertion than the client event would have been
 The client needs the canonical row, its server timestamp and resolved sender name, to
 replace the optimistic entry. Assertions about "what the other side received" must filter on
 `message.sender`, or they will match the echo.
+
+### One collaboration per campaign and creator, which shapes the tests
+
+`collaborations_campaign_creator_key` is a unique index on `(campaign_id, creator_id)`. A
+second invitation for the same pair fails, so any test that needs two collaborations with one
+creator has to mint a campaign per case. The SSE tests do that through a `newCampaign` helper.
+The first version reused one campaign and the second invite came back as an error body, which
+surfaced three steps later as `404 No such assignment` on an unrelated move.
 
 ### The UI never decides what a button should do
 
