@@ -12,9 +12,9 @@ request log. This file holds the state of the code.
 
 Last updated: 2026-08-28
 
-Right now: Phases 0 to 3 are done. Phases 4 and 5 have not begun.
+Right now: Phases 0 to 4 are done. Phase 5 has not begun.
 
-`bun test` is 151 passing, 78 of them against live Neon. Both typechecks clean.
+`bun test` is 183 passing, 110 of them against live Neon. Both typechecks clean.
 `bun run dev` starts the API on 3001 and the web app on 3000. Fifteen web routes build.
 
 Design direction is settled: **Imperial Blue `#021F94` on White Convolvulus `#F5F2F3`**,
@@ -29,7 +29,7 @@ rejected. Do not read it as current. `design-lab/imperial/` is the approved pair
 | 1 | Auth, both onboardings, catalog, match algorithm | done |
 | 2 | Campaigns, collaborations, tracked links | done |
 | 3 | Messenger over WebSocket, SSE status stream | done |
-| 4 | Mocked ledger, escrow, analytics | not started |
+| 4 | Mocked ledger, escrow, analytics | done |
 | 5 | Workspaces and invites | not started |
 
 ### Phase 0 detail
@@ -86,7 +86,7 @@ Auth, both onboardings, the catalog, and the match algorithm. All done.
 ### Phase 2 detail
 
 Campaigns, collaborations, tracked links, campaign import, and the expiry clock. All done.
-The refund the clock returns is recorded as an effect and performed in Phase 4.
+The refund the clock returns is performed by the ledger, not only recorded.
 
 | Item | Status | Files |
 |---|---|---|
@@ -125,11 +125,31 @@ Messenger over WebSocket and the SSE status stream. All done.
 | Live refresh on state change | done, verified through the proxy | `apps/web/src/components/live-collabs.tsx` |
 | Shutdown drains accepted writes | done, fixed a real deadlock | `apps/api/src/messaging/ws.ts` |
 
-### Phases 4 and 5
+### Phase 4 detail
 
-Not started. Scope is under what is left. The nine sidebar links that 404 belong here.
+Wallets, double-entry ledger, escrow, settlement, click ingestion, and three pages. All done.
+Top-up and withdrawal move no real money and never touch a payment provider.
 
-`bun test` is 151 passing, 78 of them against the live Neon database. `bun run typecheck` is
+| Item | Status | Files |
+|---|---|---|
+| Wallets, ledger, escrow holds, idempotency keys, clicks | done, migrated | `packages/db/migrations/0004`, `0005`, `0006` |
+| Ledger service, five movements | done, 11 tests | `apps/api/src/billing/ledger.ts` |
+| Idempotency wrapper | done | `apps/api/src/billing/idempotency.ts` |
+| Wallet routes, both sides | done, 8 tests | `apps/api/src/routes/wallet-routes.ts` |
+| Escrow effects performed in the move transaction | done | `apps/api/src/routes/collab-routes.ts` |
+| Settlement sweep, auto-verify and auto-pay | done, 6 tests | `apps/api/src/events/expiry.ts` |
+| Tracked link redirect and click counting | done, 6 tests | `apps/api/src/routes/redirect-routes.ts` |
+| Campaign analytics | done | `apps/api/src/routes/analytics-routes.ts` |
+| Brand billing page | done, verified live | `apps/web/src/app/brand/(app)/billing/` |
+| Brand analytics page | done, verified live | `apps/web/src/app/brand/(app)/analytics/` |
+| Creator payouts page | done, verified live | `apps/web/src/app/creator/(app)/payouts/` |
+| Creator rotation bundles | **not started** | n/a |
+
+### Phase 5
+
+Not started. Scope is under what is left.
+
+`bun test` is 183 passing, 110 of them against the live Neon database. `bun run typecheck` is
 clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
 app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
 
@@ -140,13 +160,12 @@ resolves to IPv6 here and nothing binds `::1`.
 
 The single list of unbuilt work. Update it here, not in six places.
 
-**Phase 4, not started**
+**Phase 4 remainder**
 
-Wallets, double-entry `ledger_entries`, `escrow_holds`, `idempotency_keys`, and the
-analytics rollups. The state machine already emits `hold_escrow`, `release_escrow`, and
-`refund_escrow` as effects, so this phase implements the effects rather than reworking the
-machine. The expiry sweep already writes `refund_escrow` into `collaboration_events`, so
-Phase 4 has a record of every refund it owes.
+| Item | Note |
+|---|---|
+| Creator rotation bundles | Book 5 to 8 creators with staggered dates in one action. Needs the billing layer underneath it, which now exists. |
+| Impressions and attributed signups | No data source. See the analytics note in `docs/superpowers/specs/2026-08-28-phase-4-money-layer-design.md`. Cost per lead needs a conversion endpoint the brand calls from their own signup handler. |
 
 **Phase 5, not started**
 
@@ -160,13 +179,12 @@ Every one of these is a live 404 reachable from a sidebar.
 | Route | Side |
 |---|---|
 | `/brand/dashboard` | brand |
-| `/brand/analytics` | brand |
-| `/brand/billing` | brand |
 | `/brand/settings`, `/brand/help` | brand |
 | `/creator/assignments` | creator |
-| `/creator/payouts` | creator |
 | `/creator/performance` | creator |
 | `/creator/settings`, `/creator/help` | creator |
+
+`/brand/billing`, `/brand/analytics`, and `/creator/payouts` shipped with Phase 4.
 
 **Accepted features not yet built**
 
@@ -176,8 +194,6 @@ one list answers "what is left".
 | Feature | Phase |
 |---|---|
 | Voice-matched draft co-pilot from the creator's post corpus | 3 |
-| Billing tab, mocked | 4 |
-| Creator earnings page | 4 |
 | Creator rotation bundles, 5 to 8 with staggered dates | 4 |
 | Brand workspaces with member invites | 5 |
 | Compare tray, pin up to 4 creators | 1, deferred |
@@ -286,7 +302,15 @@ Populated as things get built. Path plus export name so nobody greps.
 | OpenRouter client | `packages/ai/src/openrouter.ts` | `complete` |
 | Gemini embeddings | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
 | Role guards | `apps/api/src/guards.ts` | `requireRole` |
-| Ledger operations | `apps/api/src/billing/ledger.ts` | `credit`, `debit`, `hold`, `release` (Phase 4, not built) |
+| Ledger operations | `apps/api/src/billing/ledger.ts` | `topUp`, `withdraw`, `holdEscrow`, `releaseEscrow`, `refundEscrow`, `InsufficientFunds` |
+| Wallet lookups, created on first use | `apps/api/src/billing/ledger.ts` | `workspaceWallet`, `creatorWallet`, `escrowWallet`, `platformWallet` |
+| Idempotency wrapper for money endpoints | `apps/api/src/billing/idempotency.ts` | `withIdempotency` |
+| Wallet and ledger routes | `apps/api/src/routes/wallet-routes.ts` | `brandWalletRoutes`, `creatorWalletRoutes` |
+| Campaign analytics | `apps/api/src/routes/analytics-routes.ts` | `analyticsRoutes` |
+| Tracked link redirect and click counting | `apps/api/src/routes/redirect-routes.ts` | `redirectRoutes` |
+| Settlement sweep and its windows | `apps/api/src/events/expiry.ts` | `sweepSettlement`, `startSweeps`, `VERIFY_WINDOW_MS`, `SETTLE_WINDOW_MS` |
+| Money and wallet shapes | `packages/contracts/src/billing.ts` | `Money`, `BrandWallet`, `CreatorWallet`, `BrandAnalytics` |
+| Top-up and withdraw buttons | `apps/web/src/components/wallet-actions.tsx` | `TopUp`, `Withdraw` |
 | Fastify app factory | `apps/api/src/app.ts` | `buildApp` |
 | Better Auth instance, pool, db | `apps/api/src/auth.ts` | `auth`, `db`, `pool`, `accountTypeFor` |
 | Role guard preHandler | `apps/api/src/guards.ts` | `requireRole` |
@@ -350,7 +374,7 @@ leaving a stale pointer.
 
 ## Data model summary
 
-Planned. Nothing migrated yet.
+Every table below is migrated and live.
 
 | Table | Purpose | Key relationships |
 |---|---|---|
@@ -366,10 +390,11 @@ Planned. Nothing migrated yet.
 | `collaborations` | One brand-creator engagement. Carries the state enum. | campaign, creator |
 | `collaboration_events` | Append-only audit log of every transition | collaborations |
 | `messages` | Persisted before broadcast so history survives a reconnect | collaborations |
-| `wallets` | One per workspace and one per creator | workspace or user |
-| `ledger_entries` | Double-entry, paired debit and credit rows, integer minor units | wallets |
-| `escrow_holds` | Funds committed to a collaboration but not yet released | collaborations |
-| `idempotency_keys` | Stored response body per key so a retry returns the original result | n/a |
+| `wallets` | One per workspace, one per creator, plus a global escrow and platform wallet | workspace, creator, or neither |
+| `ledger_entries` | Double-entry, paired rows sharing an `entry_group`, signed integer minor units | wallets |
+| `escrow_holds` | Funds committed to a collaboration but not yet released, unique per collaboration | collaborations |
+| `idempotency_keys` | Stored response body per key so a retry returns the original result | users |
+| `link_clicks` | One row per visitor per collaboration per day, with a hits counter | collaborations |
 
 ---
 
@@ -468,6 +493,38 @@ inside the existing guarded scope and reuses `requireRole`. No second auth path.
 **2026-08-28, the broker is generic over its payload.** `Broker<T>` and `InProcessBroker<T>`
 carry `Message` for the socket and `CollabChanged` for the status stream. One implementation
 for both, and the type parameter stops either stream from delivering the other's frames.
+
+**2026-08-28, escrow is checked before it is promised.** A creator accepting an invitation the
+brand cannot fund gets `402 insufficient_funds` and the collaboration stays `invited`. The
+alternative, letting a wallet go negative, would have made a hold mean nothing and let two
+collaborations commit the same euro. Ujjwal's call.
+
+**2026-08-28, no platform fee.** Every euro held is a euro released. Matches Naano's free tier
+and keeps a movement to two rows. A fee later is one more ledger line, not a rewrite.
+
+**2026-08-28, four wallet kinds, and the outside world is one of them.** `workspace`,
+`creator`, `escrow`, `platform`. The platform wallet is the counter-account for money entering
+and leaving, which is what lets every entry group sum to zero. It is the only wallet allowed
+to go negative, and its balance is the negative of everything the system holds.
+
+**2026-08-28, escrow is a wallet, not a column.** The first sketch gave every wallet a
+`held_minor` bucket beside its balance, which meant a hold moved money inside one row and no
+longer summed to zero across wallets. Escrow is now a real wallet and `escrow_holds` is the
+per-collaboration index into it, unique on `collaboration_id` so a repeated hold is a no-op.
+
+**2026-08-28, the brand verifies, the sweep pays.** `verify` gained the `brand` actor because
+the brand is the only party who can judge whether the post matched the brief. Two windows stop
+either side from stalling: a published post nobody verified is verified by the system after 7
+days, and a verified collaboration pays 48 hours later. Ujjwal's call.
+
+**2026-08-28, the tracked link is a real URL.** `mintLink` used to produce the display string
+`lpwk.co/5754371`, which nobody could click. It now mints `${API_URL}/r/<code>`, and `GET /r/:code`
+records the click and redirects. Attribution is only mandatory if the link works.
+
+**2026-08-28, clicks are counted per visitor per day, with hits beside them.** `link_clicks` is
+unique on `(collaboration_id, visitor_hash, clicked_on)` with a `hits` counter incremented on
+conflict. Refreshing a page moves hits and not visitors. `visitor_hash` is a one-way hash of
+address plus user agent, and the address itself is never stored.
 
 **2026-08-28, multipart is parsed by the runtime, not by a plugin.** `@fastify/multipart`
 was installed and then removed. Bun and Node both implement `Response.formData()`, so a
@@ -755,6 +812,40 @@ never exits, which reads like a hang in the tests themselves.
 `registerMessageSocket` tracks every open socket and closes them from an `onClose` hook with
 `CloseCode.serverShutdown`, and the Fastify factory sets `forceCloseConnections: true`. This
 is a real graceful-shutdown requirement, not a test workaround.
+
+### Escrow made every accepting test a funding test
+
+Wiring `hold_escrow` into the move handler turned eleven passing tests red at once, all with
+`402 insufficient_funds`. Nothing was broken. Every test that accepted an invitation was
+spending money its brand never had, and the new check noticed.
+
+Any test that reaches `accepted` or beyond has to top the wallet up first:
+
+```ts
+await app.inject({
+  method: 'POST',
+  url: '/brand/wallet/topup',
+  payload: { amountMinor: 1_000_000 },
+  headers: { cookie: brandCookie, 'idempotency-key': `fund-${stamp}` }
+});
+```
+
+A second brand inside one test file needs its own top-up and its own key.
+
+### Deleting a wallet leaves half an entry group behind
+
+`ledger_entries` cascades with its wallet, so a teardown that deletes a user removes that
+side of every movement and leaves the counterpart row stranded in a group that no longer
+sums to zero. Run one test file and the global invariant holds. Run the suite and it does
+not.
+
+The strict alternative, `ON DELETE RESTRICT`, is the honest ledger stance and makes teardown
+fail with a foreign key violation in six different files instead.
+
+So the invariant test asserts what survives deletion: no group has more than two rows, and
+every group that still has both rows sums to zero. The property that actually matters is
+covered separately by a rollback test, which proves a movement writes both sides or neither.
+Nothing in production deletes a wallet.
 
 ### inject drops the multipart content-type if you read it after awaiting the body
 
