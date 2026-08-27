@@ -21,6 +21,7 @@ import { campaignRoutes } from './routes/campaign-routes';
 import { collabRoutes } from './routes/collab-routes';
 import { messageRoutes } from './routes/message-routes';
 import { creatorRoutes } from './routes/creator-routes';
+import { invitePreviewRoute, workspaceRoutes } from './routes/workspace-routes';
 
 export function buildApp(
   broker: Broker<Message> = new InProcessBroker(),
@@ -91,10 +92,12 @@ export function buildApp(
   app.register(
     async (brand) => {
       authRoutes(brand, 'brand');
+      invitePreviewRoute(brand);
       brand.register(async (guarded) => {
         guarded.addHook('preHandler', requireRole('brand'));
         guarded.get('/me', async (request) => request.session);
         brandRoutes(guarded);
+        workspaceRoutes(guarded);
         catalogRoutes(guarded);
         campaignRoutes(guarded);
         collabRoutes(guarded, 'brand', bus);

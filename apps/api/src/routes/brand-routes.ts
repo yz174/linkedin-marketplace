@@ -1,12 +1,18 @@
 import { embedQuery, generateIcp, ThinPageError } from '@lm/ai';
-import { BrandProfile, GenerateIcpRequest, GenerateIcpResponse, SaveBrandProfile } from '@lm/contracts';
+import {
+  BrandProfile,
+  canEditIcp,
+  GenerateIcpRequest,
+  GenerateIcpResponse,
+  SaveBrandProfile
+} from '@lm/contracts';
 import { brands, workspaceMembers, workspaces } from '@lm/db';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../auth';
 import { session } from '../guards';
-import { fail } from '../http';
+import { fail, HttpError } from '../http';
 
 export function brandRoutes(instance: FastifyInstance) {
   const app = instance.withTypeProvider<ZodTypeProvider>();
@@ -42,8 +48,17 @@ export function brandRoutes(instance: FastifyInstance) {
       const { companyName, productUrl, icp } = request.body;
       const userId = session(request).userId;
 
+      const membership = await membershipFor(userId);
+      if (membership && !canEditIcp(membership.role)) {
+        throw new HttpError(
+          403,
+          'insufficient_role',
+          'Only an owner or an admin can change the workspace ICP.'
+        );
+      }
+
       const embedding = await embedQuery([icp.summary, ...icp.points].join('\n'));
-      const workspaceId = await workspaceFor(userId, companyName);
+      const workspaceId = membership?.workspaceId ?? (await createWorkspace(userId, companyName));
 
       const [row] = await db
         .insert(brands)
@@ -112,19 +127,21 @@ export function brandRoutes(instance: FastifyInstance) {
   });
 }
 
-export async function existingWorkspace(userId: string) {
+export async function membershipFor(userId: string) {
   const [membership] = await db
-    .select({ workspaceId: workspaceMembers.workspaceId })
+    .select({ workspaceId: workspaceMembers.workspaceId, role: workspaceMembers.role })
     .from(workspaceMembers)
     .where(eq(workspaceMembers.userId, userId))
     .limit(1);
+  return membership ?? null;
+}
+
+export async function existingWorkspace(userId: string) {
+  const membership = await membershipFor(userId);
   return membership?.workspaceId ?? null;
 }
 
-async function workspaceFor(userId: string, companyName: string) {
-  const existing = await existingWorkspace(userId);
-  if (existing) return existing;
-
+async function createWorkspace(userId: string, companyName: string) {
   return db.transaction(async (tx) => {
     const [workspace] = await tx.insert(workspaces).values({ name: companyName }).returning();
     await tx
