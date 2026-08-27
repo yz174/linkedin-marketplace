@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
+import { LiveCollabs } from '@/components/live-collabs';
 import { CollabActions } from '@/components/collab-actions';
 import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
@@ -58,6 +59,7 @@ export default async function OffersPage() {
 
   return (
     <>
+      <LiveCollabs side="creator" />
       <Topbar
         placeholder="Search offers, brands, payouts"
         right={

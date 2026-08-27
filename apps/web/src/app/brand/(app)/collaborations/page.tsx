@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { CollabActions } from '@/components/collab-actions';
 import { Icon } from '@/components/icon';
+import { LiveCollabs } from '@/components/live-collabs';
 import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { CollabList, NEEDS_YOU, STATE_LABEL, STATE_TONE, type CollabRow } from '@/lib/collab';
@@ -31,6 +32,7 @@ export default async function CollaborationsPage() {
 
   return (
     <>
+      <LiveCollabs side="brand" />
       <Topbar
         placeholder="Search assignments, creators, campaigns"
         right={
