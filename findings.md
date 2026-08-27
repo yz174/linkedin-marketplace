@@ -31,7 +31,7 @@ them as current.
 |---|---|---|
 | 0 | Research docs, design tokens, 26 mockup screens | in progress |
 | 1 | Auth, both onboardings, catalog, match algorithm | in progress |
-| 2 | Campaigns, collaboration state machine, tracked links | not started |
+| 2 | Campaigns, collaboration state machine, tracked links | in progress |
 | 3 | Messenger over WebSocket, SSE status stream | not started |
 | 4 | Mocked ledger, escrow, analytics | not started |
 | 5 | Workspaces and invites | not started |
@@ -85,10 +85,17 @@ step and no dependencies.
 | Brand catalog page on live data | done, 14 creators render ranked | `apps/web/src/app/brand/catalog/page.tsx` |
 | Brand onboarding page, URL to editable ICP | done, verified against ashbyhq.com | `apps/web/src/app/brand/onboarding/` |
 | Creator auth, onboarding, identity card | done, verified with a real LinkedIn fetch | `apps/web/src/app/creator/` |
-| Creator offers, assignments, messenger, payouts | not started, nav links point at 404s | `apps/web/src/app/creator/` |
-| Brand dashboard, campaigns, collaborations, billing | not started, nav links point at 404s | `apps/web/src/app/brand/` |
+| Collaboration state machine, pure | done, 23 tests, 919 assertions | `packages/collab/src/transitions.ts` |
+| Campaign and collaboration schema | done, migrated | `packages/db/migrations/0001`, `0002` |
+| Campaign and collaboration routes | done, 13 integration tests | `apps/api/src/routes/{campaign,collab}-routes.ts` |
+| Creator offers screen with counter-offers | done, verified live | `apps/web/src/app/creator/offers/` |
+| Brand collaborations board | done, verified live | `apps/web/src/app/brand/(app)/collaborations/` |
+| Brand campaigns page and create form | done, verified live | `apps/web/src/app/brand/(app)/campaigns/` |
+| Commission a creator from the catalog | done, verified live | `apps/web/src/components/commission-button.tsx` |
+| Creator assignments, messenger, payouts | not started, nav links point at 404s | `apps/web/src/app/creator/` |
+| Brand dashboard, analytics, billing | not started, nav links point at 404s | `apps/web/src/app/brand/` |
 
-`bun test` is 68 passing, 27 of them against the live Neon database. `bun run typecheck` is
+`bun test` is 104 passing, 40 of them against the live Neon database. `bun run typecheck` is
 clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
 app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
 
@@ -196,6 +203,13 @@ Populated as things get built. Path plus export name so nobody greps.
 | Creator fetch and profile routes | `apps/api/src/routes/creator-routes.ts` | `creatorRoutes` |
 | Catalog with ranking | `apps/api/src/routes/catalog-routes.ts` | `catalogRoutes` |
 | Row to card mapping | `apps/api/src/routes/catalog-shape.ts` | `toCard`, `contributorNumber` |
+| Collaboration state machine | `packages/collab/src/transitions.ts` | `transition`, `allowedEvents`, `isTerminal` |
+| Campaign routes | `apps/api/src/routes/campaign-routes.ts` | `campaignRoutes` |
+| Collaboration routes, both sides | `apps/api/src/routes/collab-routes.ts` | `collabRoutes` |
+| Collaboration actions, both sides, driven by `allowed` | `apps/web/src/components/collab-actions.tsx` | `CollabActions` |
+| Invite a creator from a card | `apps/web/src/components/commission-button.tsx` | `CommissionButton` |
+| Campaign create form | `apps/web/src/components/campaign-form.tsx` | `CampaignForm` |
+| Shared collaboration row shape and labels | `apps/web/src/lib/collab.ts` | `CollabRow`, `CollabList`, `STATE_LABEL`, `NEEDS_YOU` |
 | Thrown API error, halts the hook chain | `apps/api/src/http.ts` | `HttpError`, `fail` |
 | Session accessor that never returns undefined | `apps/api/src/guards.ts` | `session` |
 | Cosine calibration | `packages/match/src/score.ts` | `normalizeCosine`, `SEMANTIC_FLOOR`, `SEMANTIC_CEILING` |
@@ -318,6 +332,19 @@ Arc / Family / Rauno tier: interaction mechanics over illustration. Full detail 
 build. Two things stay in on craft grounds rather than compliance grounds: designed focus
 states, and Radix unstyled primitives so a later retrofit is a styling job rather than a
 rewrite. Recorded so nobody reads it as an oversight.
+
+**2026-08-27, one actions component for both sides.** `CollabActions` replaced the
+creator-only `OfferActions`, which was starting to hold a second copy of the negotiation
+rules. It takes `side` and the server-supplied `allowed` list and nothing else.
+
+**2026-08-27, the state machine is a package, not a folder in db.** `packages/collab` holds
+`transition` and `allowedEvents` as pure functions over a plain object. No database import,
+no Fastify import. The route reads a row, calls `transition`, and writes the result inside
+one transaction alongside an append-only `collaboration_events` entry.
+
+**2026-08-27, effects are returned, not performed.** `transition` returns
+`['hold_escrow', 'count_acceptance']` and the caller decides what that means. Keeps the
+machine testable without a database and leaves Phase 4 free to implement escrow properly.
 
 **2026-08-27, onboarding never saves a draft silently.** Both onboarding flows fetch, then
 show everything for confirmation, then save on an explicit action. The brand flow surfaces
@@ -487,6 +514,90 @@ role" field expecting the provider to fill it.
 Quoted average is 3.12s. Too slow to sit inside a form submit with a spinner. Creator
 onboarding step 3 needs a progress state substantial enough to hold attention, which is why
 the identity card reveal is framed as an event rather than a page load.
+
+### The UI never decides what a button should do
+
+`GET /collaborations` returns an `allowed` array per row, computed by `allowedEvents` from
+the same rule table the writes go through. `CollabActions` renders one button per entry and
+sends that event back. There is no client-side copy of the state machine, no list of which
+buttons belong to which state, and nothing to drift.
+
+Observed live on a fresh invitation:
+
+```
+brand:   state=invited  allowed=['cancel']
+creator: state=invited  allowed=['accept', 'decline', 'counter', 'cancel']
+```
+
+Guards that are not visible in the rule table still hide the button, because `allowedEvents`
+re-runs `transition` on each candidate. The counter cap, the missing tracked link, and
+accepting your own counter all disappear from the UI without any UI code knowing they exist.
+
+Adding a state or an event means editing `packages/collab/src/transitions.ts` and adding a
+label to `LABEL` in `collab-actions.tsx`. Nothing else.
+
+### Route groups keep the shell off the auth pages
+
+`app/brand/(app)/` carries the sidebar layout and holds `catalog`, `campaigns`, and
+`collaborations`. `login`, `signup`, and `onboarding` sit outside it and render bare.
+Parenthesised segments do not appear in the URL, so `/brand/catalog` is unchanged.
+
+The right rail is now a `.main-in.railed` modifier on the page rather than a class on the
+shell, because only the catalog and the creator card have one.
+
+After moving page directories, delete `apps/web/.next` before typechecking. Next caches
+generated route validators and reports missing modules for the old paths, which reads like a
+broken import.
+
+### Nobody may accept their own counter-offer
+
+Caught while clicking through the offers screen, not by a test. The rule table lets either
+side accept from `countered`, because a counter can come from either direction. But the
+machine had no memory of *who* countered last, so a creator could counter at a higher fee
+and immediately accept their own counter, raising their own price unilaterally.
+
+`Collaboration.lastCounterBy` now records the actor on every counter, persisted as
+`collaborations.last_counter_by`, and `transition` refuses `accept` when the acceptor is
+the one who made the standing offer:
+
+```
+cannot_accept_own_counter: "You made the last offer. The other side has to answer it."
+```
+
+Any future two-party negotiation state needs the same treatment. A symmetric rule table is
+not enough when the parties alternate.
+
+### The tracked-link rule is enforced twice, deliberately
+
+`transition` refuses `publish` without a tracked link, and the `collaborations` table
+carries a CHECK constraint:
+
+```sql
+state not in ('published', 'verified', 'paid') or tracked_link is not null
+```
+
+The state machine gives a useful message. The constraint means a bug in the route, a
+migration, or a manual `UPDATE` cannot produce a published row with no attribution. This is
+the structural answer to the incumbent's 62% attribution coverage, so it does not rely on
+application code being correct.
+
+### Bun loads .env from the working directory, not the file's package
+
+A one-off script placed in `packages/db` and run as `cd packages/db && bun run script.ts`
+fails with `DATABASE_URL is not set`, because Bun looks for `.env` in the cwd. Run it from
+the repo root instead: `bun run packages/db/script.ts`.
+
+Module resolution works the opposite way and follows the file. A script at the repo root
+cannot `import { eq } from 'drizzle-orm'`, because that package is installed under
+`packages/db/node_modules`. So an ad-hoc database script must **live inside
+`packages/db`** and **run from the root**. Both halves are needed.
+
+### allowedEvents is derived, not a second source of truth
+
+`allowedEvents` filters the rule table and then re-runs `transition` on each candidate, so
+guards that are not visible in the table (counter caps, the missing tracked link, accepting
+your own counter) automatically hide the action in the UI. There is no separate list of
+what a button should show, which is what usually drifts.
 
 ### Sector order is load-bearing, not cosmetic
 
