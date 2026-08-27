@@ -7,7 +7,11 @@ import {
 import { auth } from './auth';
 import { env } from './env';
 import { requireRole } from './guards';
+import { HttpError } from './http';
 import { authRoutes, forward, toHeaders } from './routes/auth-routes';
+import { brandRoutes } from './routes/brand-routes';
+import { catalogRoutes } from './routes/catalog-routes';
+import { creatorRoutes } from './routes/creator-routes';
 
 export function buildApp() {
   const app = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
@@ -16,23 +20,25 @@ export function buildApp() {
   app.setSerializerCompiler(serializerCompiler);
 
   app.setErrorHandler((error: FastifyError, _request, reply) => {
+    if (error instanceof HttpError) {
+      return reply.status(error.status).send({ code: error.code, message: error.message });
+    }
     if (error.validation) {
       return reply.status(400).send({ code: 'validation_failed', message: error.message });
     }
-    reply.status(error.statusCode ?? 500).send({
+    return reply.status(error.statusCode ?? 500).send({
       code: 'validation_failed',
       message: error.message
     });
   });
 
-  app.addHook('onSend', async (request, reply) => {
+  app.addHook('onRequest', async (request, reply) => {
     reply.header('access-control-allow-origin', env().WEB_ORIGIN);
     reply.header('access-control-allow-credentials', 'true');
     reply.header('access-control-allow-headers', 'content-type');
-    if (request.method === 'OPTIONS') reply.header('access-control-allow-methods', 'GET,POST,PATCH,OPTIONS');
+    reply.header('access-control-allow-methods', 'GET,POST,PATCH,OPTIONS');
+    if (request.method === 'OPTIONS') return reply.status(204).send();
   });
-
-  app.options('/*', async (_request, reply) => reply.status(204).send());
 
   app.get('/health', async () => ({ ok: true }));
 
@@ -58,6 +64,8 @@ export function buildApp() {
       brand.register(async (guarded) => {
         guarded.addHook('preHandler', requireRole('brand'));
         guarded.get('/me', async (request) => request.session);
+        brandRoutes(guarded);
+        catalogRoutes(guarded);
       });
     },
     { prefix: '/brand' }
@@ -69,6 +77,7 @@ export function buildApp() {
       creator.register(async (guarded) => {
         guarded.addHook('preHandler', requireRole('creator'));
         guarded.get('/me', async (request) => request.session);
+        creatorRoutes(guarded);
       });
     },
     { prefix: '/creator' }

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq, like } from 'drizzle-orm';
 import { users } from '@lm/db';
 import { buildApp } from './app';
-import { db, pool } from './auth';
+import { db } from './auth';
 
 const TIMEOUT = 30_000;
 const app = buildApp();
@@ -17,7 +17,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.delete(users).where(like(users.email, 'api%@constraint.test'));
   await app.close();
-  await pool.end();
 }, TIMEOUT);
 
 type Injected = Awaited<ReturnType<typeof app.inject>>;
