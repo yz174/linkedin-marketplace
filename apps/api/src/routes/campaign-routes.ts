@@ -27,7 +27,8 @@ const CreateCampaign = z.object({
   budgetMinMinor: z.number().int().min(0),
   budgetMaxMinor: z.number().int().min(0),
   source: z.enum(['ai', 'url', 'document']),
-  sourceRef: z.string().max(500).optional()
+  sourceRef: z.string().max(500).optional(),
+  landingUrl: z.string().url().optional()
 });
 
 export function campaignRoutes(instance: FastifyInstance) {
@@ -120,7 +121,12 @@ export function campaignRoutes(instance: FastifyInstance) {
 
     const [row] = await db
       .insert(campaigns)
-      .values({ ...body, sourceRef: body.sourceRef ?? null, brandId: brand.id })
+      .values({
+        ...body,
+        sourceRef: body.sourceRef ?? null,
+        landingUrl: body.landingUrl ?? brand.productUrl,
+        brandId: brand.id
+      })
       .returning();
     return row;
   });

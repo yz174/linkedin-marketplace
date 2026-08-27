@@ -6,6 +6,8 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { db } from '../auth';
+import { env } from '../env';
+import { holdEscrow, refundEscrow } from '../billing/ledger';
 import { publishCollabChange, type StatusBus } from '../events/bus';
 import { session } from '../guards';
 import { HttpError } from '../http';
@@ -123,6 +125,13 @@ export function collabRoutes(
       ? (current.trackedLink ?? mintLink(current.reference))
       : current.trackedLink;
 
+    const [owner] = await db
+      .select({ brandId: campaigns.brandId, workspaceId: brands.workspaceId })
+      .from(campaigns)
+      .innerJoin(brands, eq(campaigns.brandId, brands.id))
+      .where(eq(campaigns.id, current.campaignId))
+      .limit(1);
+
     const updated = await db.transaction(async (tx) => {
       const [row] = await tx
         .update(collaborations)
@@ -140,6 +149,8 @@ export function collabRoutes(
           postUrl: request.body.postUrl ?? current.postUrl,
           trackedLink,
           respondedAt: current.respondedAt ?? new Date(),
+          publishedAt: outcome.to === 'published' ? new Date() : current.publishedAt,
+          verifiedAt: outcome.to === 'verified' ? new Date() : current.verifiedAt,
           updatedAt: new Date()
         })
         .where(eq(collaborations.id, id))
@@ -168,16 +179,22 @@ export function collabRoutes(
           .where(eq(creators.id, current.creatorId));
       }
 
+      if (outcome.effects.includes('hold_escrow')) {
+        await holdEscrow(tx, {
+          collaborationId: id,
+          workspaceId: owner!.workspaceId,
+          amountMinor: row!.feeMinor
+        });
+      }
+
+      if (outcome.effects.includes('refund_escrow')) {
+        await refundEscrow(tx, { collaborationId: id });
+      }
+
       return row!;
     });
 
-    const [campaign] = await db
-      .select({ brandId: campaigns.brandId })
-      .from(campaigns)
-      .where(eq(campaigns.id, current.campaignId))
-      .limit(1);
-
-    await announce(updated, campaign!.brandId, {
+    await announce(updated, owner!.brandId, {
       from: current.state,
       to: outcome.to,
       actor
@@ -277,5 +294,5 @@ function reference() {
 }
 
 function mintLink(ref: string) {
-  return `lpwk.co/${ref.replace('A-', '').toLowerCase()}`;
+  return `${env().API_URL}/r/${ref.replace('A-', '').toLowerCase()}`;
 }

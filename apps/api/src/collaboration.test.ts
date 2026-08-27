@@ -105,6 +105,14 @@ beforeAll(async () => {
     brandCookie
   );
   campaignId = campaign.json<{ id: string }>().id;
+
+  const funded = await app.inject({
+    method: 'POST',
+    url: '/brand/wallet/topup',
+    payload: { amountMinor: 1_000_000 } as never,
+    headers: { cookie: brandCookie, 'idempotency-key': `col-fund-${stamp}` }
+  });
+  expect(funded.statusCode).toBe(200);
 }, TIMEOUT);
 
 afterAll(async () => {
@@ -184,7 +192,7 @@ test('the brief and draft flow reaches approval and mints a tracked link', async
 
   const body = approved.json<{ collaboration: { trackedLink: string | null }; effects: string[] }>();
   expect(body.effects).toContain('mint_tracked_link');
-  expect(body.collaboration.trackedLink).toMatch(/^lpwk\.co\//);
+  expect(body.collaboration.trackedLink).toMatch(/\/r\/[a-z0-9]+$/);
 }, TIMEOUT);
 
 test('publishing needs the live post url even once the link exists', async () => {
@@ -195,22 +203,34 @@ test('publishing needs the live post url even once the link exists', async () =>
   expect(withoutUrl.json<{ message: string }>().message).toContain('URL of the live post');
 }, TIMEOUT);
 
-test('publishing succeeds with the post url and the cycle completes', async () => {
+test('publishing succeeds with the post url and the brand verifies it', async () => {
   const published = await move(creatorCookie, {
     event: 'publish',
     postUrl: 'https://www.linkedin.com/posts/collab-1'
   });
   expect(published.statusCode).toBe(200);
 
+  const [before] = await db.select().from(creators).where(eq(creators.id, creatorId)).limit(1);
+  expect(before!.deliveredCount).toBe(0);
+
   const verified = await post(
     `/brand/collaborations/${collabId}/move`,
     { event: 'verify' },
     brandCookie
   );
-  expect(verified.statusCode).toBe(409);
+  expect(verified.statusCode).toBe(200);
 
-  const [before] = await db.select().from(creators).where(eq(creators.id, creatorId)).limit(1);
-  expect(before!.deliveredCount).toBe(0);
+  const [after] = await db.select().from(creators).where(eq(creators.id, creatorId)).limit(1);
+  expect(after!.deliveredCount).toBe(1);
+}, TIMEOUT);
+
+test('a creator cannot verify their own post', async () => {
+  const attempt = await post(
+    `/creator/collaborations/${collabId}/move`,
+    { event: 'verify' },
+    creatorCookie
+  );
+  expect(attempt.statusCode).toBe(409);
 }, TIMEOUT);
 
 test('the audit log records every transition in order', async () => {
@@ -226,7 +246,8 @@ test('the audit log records every transition in order', async () => {
     'submit_draft',
     'approve',
     'schedule',
-    'publish'
+    'publish',
+    'verify'
   ]);
 }, TIMEOUT);
 
@@ -265,6 +286,13 @@ test('a creator cannot accept the counter they just made', async () => {
     },
     cookie2
   );
+
+  await app.inject({
+    method: 'POST',
+    url: '/brand/wallet/topup',
+    payload: { amountMinor: 1_000_000 } as never,
+    headers: { cookie: cookie2, 'idempotency-key': `col-fund2-${stamp}` }
+  });
 
   const campaign = await post(
     '/brand/campaigns',
