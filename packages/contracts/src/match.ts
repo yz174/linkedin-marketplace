@@ -36,9 +36,18 @@ export const MatchReason = z.object({
 });
 export type MatchReason = z.infer<typeof MatchReason>;
 
+export const MatchComponents = z.object({
+  tagAffinity: z.number().min(0).max(1),
+  semanticFit: z.number().min(0).max(1),
+  audienceFit: z.number().min(0).max(1),
+  reliability: z.number().min(0).max(1),
+  availability: z.number().min(0).max(1)
+});
+export type MatchComponents = z.infer<typeof MatchComponents>;
+
 export const MatchScore = z.object({
   score: z.number().min(0).max(100),
-  components: z.record(MatchComponent, z.number().min(0).max(1)),
+  components: MatchComponents,
   reasons: z.array(MatchReason)
 });
 export type MatchScore = z.infer<typeof MatchScore>;
@@ -51,9 +60,20 @@ export type MatchedCreator = z.infer<typeof MatchedCreator>;
 
 export const CatalogQuery = z.object({
   view: z.enum(['matched', 'all']).default('matched'),
-  limit: z.number().int().min(1).max(100).default(24),
+  limit: z.coerce.number().int().min(1).max(100).default(24),
   cursor: z.string().optional(),
-  weights: MatchWeights.optional()
+  weights: z
+    .string()
+    .transform((raw, ctx) => {
+      try {
+        return JSON.parse(raw) as unknown;
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'weights must be JSON' });
+        return z.NEVER;
+      }
+    })
+    .pipe(MatchWeights)
+    .optional()
 });
 export type CatalogQuery = z.infer<typeof CatalogQuery>;
 
