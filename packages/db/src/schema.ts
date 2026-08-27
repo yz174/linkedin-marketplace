@@ -34,30 +34,71 @@ export const sector = pgEnum('sector', SECTORS);
 export const memberRole = pgEnum('member_role', ['owner', 'admin', 'member']);
 
 export const users = pgTable(
-  'users',
+  'user',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    email: citext('email').notNull(),
+    id: text('id').primaryKey(),
     name: text('name').notNull(),
-    passwordHash: text('password_hash').notNull(),
+    email: citext('email').notNull(),
+    emailVerified: boolean('email_verified').notNull().default(false),
+    image: text('image'),
     accountType: accountType('account_type').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },
-  (t) => [uniqueIndex('users_email_key').on(t.email)]
+  (t) => [uniqueIndex('user_email_key').on(t.email)]
 );
 
 export const sessions = pgTable(
-  'sessions',
+  'session',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    id: text('id').primaryKey(),
+    token: text('token').notNull(),
+    userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    tokenHash: text('token_hash').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
   },
-  (t) => [uniqueIndex('sessions_token_key').on(t.tokenHash), index('sessions_user_idx').on(t.userId)]
+  (t) => [uniqueIndex('session_token_key').on(t.token), index('session_user_idx').on(t.userId)]
+);
+
+export const accounts = pgTable(
+  'account',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    providerId: text('provider_id').notNull(),
+    issuer: text('issuer').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    idToken: text('id_token'),
+    accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }),
+    refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+    scope: text('scope'),
+    password: text('password'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('account_user_idx').on(t.userId)]
+);
+
+export const verifications = pgTable(
+  'verification',
+  {
+    id: text('id').primaryKey(),
+    identifier: text('identifier').notNull(),
+    value: text('value').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [index('verification_identifier_idx').on(t.identifier)]
 );
 
 export const workspaces = pgTable('workspaces', {
@@ -72,7 +113,7 @@ export const workspaceMembers = pgTable(
     workspaceId: uuid('workspace_id')
       .notNull()
       .references(() => workspaces.id, { onDelete: 'cascade' }),
-    userId: uuid('user_id')
+    userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     role: memberRole('role').notNull().default('member'),
@@ -107,7 +148,7 @@ export const creators = pgTable(
   'creators',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     contributorNumber: integer('contributor_number').generatedAlwaysAsIdentity({ startWith: 100 }),
@@ -119,7 +160,7 @@ export const creators = pgTable(
     topics: sector('topics').array().notNull(),
     ratePerPostMinor: bigint('rate_per_post_minor', { mode: 'number' }).notNull(),
     followers: integer('followers').notNull().default(0),
-    engagementRate: real('engagement_rate').notNull().default(0),
+    engagementRate: real('engagement_rate'),
     postsPerWeek: real('posts_per_week').notNull().default(0),
     acceptedCount: integer('accepted_count').notNull().default(0),
     deliveredCount: integer('delivered_count').notNull().default(0),

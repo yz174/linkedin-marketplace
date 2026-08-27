@@ -8,9 +8,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS users_lock_account_type ON users;
+DROP TRIGGER IF EXISTS users_lock_account_type ON "user";
 CREATE TRIGGER users_lock_account_type
-  BEFORE UPDATE ON users
+  BEFORE UPDATE ON "user"
   FOR EACH ROW EXECUTE FUNCTION lock_account_type();
 
 CREATE INDEX IF NOT EXISTS brands_icp_embedding_idx

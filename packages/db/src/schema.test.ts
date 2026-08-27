@@ -7,14 +7,14 @@ const pool = createPool();
 const uniq = () => `t${Date.now()}${Math.floor(Math.random() * 1e6)}`;
 
 afterAll(async () => {
-  await pool.query("delete from users where email like 't%@constraint.test'");
+  await pool.query(`delete from "user" where email like 't%@constraint.test'`);
   await pool.end();
 }, DB_TIMEOUT);
 
 async function insertUser(email: string, accountType: 'brand' | 'creator') {
   const { rows } = await pool.query<{ id: string }>(
-    'insert into users (email, name, password_hash, account_type) values ($1, $2, $3, $4) returning id',
-    [email, 'Constraint Test', 'x', accountType]
+    'insert into "user" (id, email, name, account_type) values ($1, $2, $3, $4) returning id',
+    [crypto.randomUUID(), email, 'Constraint Test', accountType]
   );
   return rows[0]!.id;
 }
@@ -42,8 +42,10 @@ test('every expected table exists', async () => {
   );
   const names = rows.map((r) => r.table_name);
   for (const t of [
-    'users',
-    'sessions',
+    'user',
+    'session',
+    'account',
+    'verification',
     'workspaces',
     'workspace_members',
     'brands',
@@ -63,15 +65,15 @@ test('email uniqueness ignores case', async () => {
 test('account_type cannot be changed after insert', async () => {
   const id = await insertUser(`${uniq()}@constraint.test`, 'creator');
   await expectFailure(
-    () => pool.query("update users set account_type = 'brand' where id = $1", [id]),
+    () => pool.query(`update "user" set account_type = 'brand' where id = $1`, [id]),
     /account_type is immutable/i
   );
 }, DB_TIMEOUT);
 
 test('updating other columns still works', async () => {
   const id = await insertUser(`${uniq()}@constraint.test`, 'brand');
-  await pool.query('update users set name = $1 where id = $2', ['Renamed', id]);
-  const { rows } = await pool.query<{ name: string }>('select name from users where id = $1', [id]);
+  await pool.query(`update "user" set name = $1 where id = $2`, ['Renamed', id]);
+  const { rows } = await pool.query<{ name: string }>(`select name from "user" where id = $1`, [id]);
   expect(rows[0]!.name).toBe('Renamed');
 }, DB_TIMEOUT);
 
