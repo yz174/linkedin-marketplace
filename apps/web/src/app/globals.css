@@ -606,3 +606,83 @@ svg { display: block; }
   font-size: 14px;
 }
 .field select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-50); }
+
+.convo {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px - var(--s6) * 2);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--sh-card);
+  overflow: hidden;
+}
+.convo-head {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s4); border-bottom: 1px solid var(--line);
+}
+.convo-name { font-size: 14.5px; font-weight: 600; letter-spacing: -0.012em; }
+.convo-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.convo-head .pill { margin-left: auto; }
+
+.convo-body {
+  flex: 1; overflow-y: auto;
+  padding: var(--s5) var(--s4);
+  display: flex; flex-direction: column; gap: var(--s3);
+  background: var(--paper);
+}
+.convo-empty { color: var(--muted); font-size: 13.5px; max-width: 48ch; margin: auto; text-align: center; line-height: 1.55; }
+
+.bubble { max-width: 62%; align-self: flex-start; }
+.bubble.mine { align-self: flex-end; }
+.bubble-meta { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+.bubble.mine .bubble-meta { text-align: right; }
+.bubble-body {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bubble.mine .bubble-body { background: var(--blue); border-color: var(--blue); color: #fff; }
+.bubble.pending .bubble-body { opacity: 0.6; }
+.bubble.pending[data-failed='1'] .bubble-body { background: var(--down-bg); border-color: var(--down-fg); color: var(--down-fg); opacity: 1; }
+.bubble-retry { color: var(--down-fg); text-decoration: underline; font-size: 11px; }
+
+.convo-error {
+  padding: 8px var(--s4);
+  background: var(--down-bg); color: var(--down-fg);
+  font-size: 12.5px;
+  border-top: 1px solid var(--line);
+}
+
+.convo-compose {
+  display: flex; align-items: center; gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--line);
+}
+.convo-compose input {
+  flex: 1;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+  font-size: 14px;
+}
+.convo-compose input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-50); }
+.convo-count { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.convo-page { display: grid; grid-template-columns: 300px 1fr; gap: var(--s5); align-items: start; }
+@media (max-width: 1000px) { .convo-page { grid-template-columns: 1fr; } }
+.thread-item {
+  display: block; width: 100%; text-align: left;
+  padding: var(--s3); border-radius: var(--r-sm);
+  transition: background var(--t) var(--ease);
+}
+.thread-item:hover { background: var(--paper); }
+.thread-item[data-on='1'] { background: var(--blue-50); }
+.thread-item .nm { font-size: 13.5px; font-weight: 600; letter-spacing: -0.008em; }
+.thread-item .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
