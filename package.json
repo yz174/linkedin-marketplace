@@ -11,7 +11,8 @@
     "test": "bun test packages",
     "db:generate": "cd packages/db && bun run generate",
     "db:migrate": "bun run packages/db/src/migrate.ts",
-    "db:seed": "bun run packages/db/src/seed.ts"
+    "db:seed": "bun run packages/db/src/seed.ts",
+    "dev:api": "bun --watch apps/api/src/server.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

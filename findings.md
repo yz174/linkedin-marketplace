@@ -72,11 +72,19 @@ step and no dependencies.
 | LinkedIn provider, ScrapeCreators and manual | done | `packages/ai/src/linkedin/` |
 | Brand site scraper | done | `packages/ai/src/scrape.ts` |
 | ICP generation | done, verified live against ashbyhq.com | `packages/ai/src/icp.ts` |
-| Fastify API and auth | not started | `apps/api/` |
+| Fastify app, Zod type provider, CORS, error shape | done | `apps/api/src/app.ts` |
+| Better Auth on Drizzle and Neon | done | `apps/api/src/auth.ts` |
+| Account-type exclusivity at signup and login | done, 10 tests | `apps/api/src/routes/auth-routes.ts` |
+| Role guards via plugin encapsulation | done | `apps/api/src/guards.ts` |
+| Brand onboarding routes, ICP generate and save | done | `apps/api/src/routes/brand-routes.ts` |
+| Creator onboarding routes, fetch and save | done, untested against a live profile | `apps/api/src/routes/creator-routes.ts` |
+| Catalog endpoint with pgvector and explainable scores | done, verified over HTTP | `apps/api/src/routes/catalog-routes.ts` |
+| Seed data, 14 creators with real embeddings | done | `packages/db/src/seed.ts` |
 | Next.js web | not started | `apps/web/` |
 
-`bun test packages` is 46 passing, 8 of them against the live Neon database.
-`bun run typecheck` is clean.
+`bun test` is 68 passing, 27 of them against the live Neon database. `bun run typecheck` is
+clean. `bun run dev:api` boots on 3001. `bun run db:seed` loads 14 creators with real Gemini
+embeddings.
 
 ### Blocked
 
@@ -169,6 +177,19 @@ Populated as things get built. Path plus export name so nobody greps.
 | Gemini embeddings | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
 | Role guards | `apps/api/src/auth/guards.ts` | `requireRole` |
 | Ledger operations | `apps/api/src/billing/ledger.ts` | `credit`, `debit`, `hold`, `release` (Phase 4, not built) |
+| Fastify app factory | `apps/api/src/app.ts` | `buildApp` |
+| Better Auth instance, pool, db | `apps/api/src/auth.ts` | `auth`, `db`, `pool`, `accountTypeFor` |
+| Role guard preHandler | `apps/api/src/guards.ts` | `requireRole` |
+| Auth routes, mounted per account type | `apps/api/src/routes/auth-routes.ts` | `authRoutes`, `forward`, `toHeaders` |
+| Typed error response | `apps/api/src/http.ts` | `fail` |
+| API environment | `apps/api/src/env.ts` | `env` |
+| Brand ICP and profile routes | `apps/api/src/routes/brand-routes.ts` | `brandRoutes`, `existingWorkspace` |
+| Creator fetch and profile routes | `apps/api/src/routes/creator-routes.ts` | `creatorRoutes` |
+| Catalog with ranking | `apps/api/src/routes/catalog-routes.ts` | `catalogRoutes` |
+| Row to card mapping | `apps/api/src/routes/catalog-shape.ts` | `toCard`, `contributorNumber` |
+| Thrown API error, halts the hook chain | `apps/api/src/http.ts` | `HttpError`, `fail` |
+| Session accessor that never returns undefined | `apps/api/src/guards.ts` | `session` |
+| Cosine calibration | `packages/match/src/score.ts` | `normalizeCosine`, `SEMANTIC_FLOOR`, `SEMANTIC_CEILING` |
 | Validated AI environment | `packages/ai/src/env.ts` | `env` |
 | Structured model call with repair retry | `packages/ai/src/openrouter.ts` | `complete` |
 | Gemini embeddings, 768 dims, normalised | `packages/ai/src/embed.ts` | `embedDocument`, `embedQuery` |
@@ -279,6 +300,31 @@ Arc / Family / Rauno tier: interaction mechanics over illustration. Full detail 
 build. Two things stay in on craft grounds rather than compliance grounds: designed focus
 states, and Radix unstyled primitives so a later retrofit is a styling job rather than a
 rewrite. Recorded so nobody reads it as an oversight.
+
+**2026-08-27, hooks throw, handlers never assume a session.** `requireRole` throws
+`HttpError`; `session(request)` is the only way to read a session and it throws 401 rather
+than returning undefined. Sending from a hook did not halt the chain and produced a
+misleading `ERR_HTTP_HEADERS_SENT`.
+
+**2026-08-27, Postgres computes cosine, the scorer stays pure.** `CreatorInput.semanticFit`
+is an optional precomputed value. The catalog selects `1 - (embedding <=> icp)` in SQL and
+passes it in, so `packages/match` never touches the database and 768 floats per creator
+never cross the wire.
+
+**2026-08-27, cosine is calibrated, not raw.** See what breaks. The `(x + 1) / 2` mapping
+made the semantic component nearly useless on real Gemini embeddings.
+
+**2026-08-27, Better Auth kept, schema reshaped to fit it.** The approved plan chose
+Better Auth, so its four tables (`user`, `session`, `account`, `verification`) replaced the
+hand-rolled `users` and `sessions`. `account_type` rides as an additional field on `user`,
+IDs are UUIDs via `advanced.database.generateId`, and the immutability trigger moved onto
+`"user"`. Domain tables now reference `user.id` as `text`.
+
+**2026-08-27, auth routes are ours, sessions are Better Auth's.** `/brand/signup`,
+`/brand/login`, and the creator mirrors are thin wrappers that check account-type
+exclusivity first and then delegate to `auth.api.signUpEmail` and `auth.api.signInEmail`.
+That buys a precise 409 with the correct login path in the message, which Better Auth alone
+would return as a generic duplicate-email error.
 
 **2026-08-27, engagement rate is nullable end to end.** Forced by what ScrapeCreators
 actually returns. `null` means unknown, is scored as a neutral, and is never coerced to 0.
@@ -411,6 +457,128 @@ role" field expecting the provider to fill it.
 Quoted average is 3.12s. Too slow to sit inside a form submit with a spinner. Creator
 onboarding step 3 needs a progress state substantial enough to hold attention, which is why
 the identity card reveal is framed as an event rather than a page load.
+
+### Returning a reply from an async preHandler does not stop the handler
+
+This one produced a confusing failure. The guard sent `403 wrong_account_type` correctly,
+the client saw the right status and body, and then the route handler **also ran** and threw
+on `request.session!.userId` because the session was never set. The visible symptom was
+`ERR_HTTP_HEADERS_SENT` from Fastify's fallback error handler, which points at the wrong
+place entirely.
+
+`requireRole` now throws `HttpError` instead of calling `reply.send()`. Fastify halts the
+chain reliably on a thrown error, and `setErrorHandler` renders it as `{ code, message }`.
+
+Rules that follow:
+
+- A hook that must reject **throws**, it does not send.
+- Handlers read the session through `session(request)`, which throws 401 rather than
+  returning `undefined`. There is no `request.session!` anywhere.
+
+### Query strings are strings, Zod needs coerce
+
+`limit: z.number()` rejected `?limit=24` with a 400, because a query value arrives as
+`"24"`. `CatalogQuery` uses `z.coerce.number()`. Object-valued params cannot ride a query
+string at all, so `weights` is a JSON string parsed through a transform and then piped into
+`MatchWeights`.
+
+### CORS headers belong in onRequest, not onSend
+
+Setting response headers in an `onSend` hook throws once a reply has already been flushed,
+which happens for any route that forwards a `Response`. Moved to `onRequest`, where the
+preflight short-circuit also lives.
+
+### Forward only the headers you mean
+
+Copying every header off Better Auth's `Response` into a Fastify reply carried
+`content-length` with it. Fastify then wrote a body of a different length and the request
+died after send. `forward()` now copies exactly two things: the `getSetCookie()` array and
+`content-type`.
+
+### Test files share module singletons in Bun
+
+`auth.test.ts` and `onboarding.test.ts` both import the pool from `auth.ts`, and Bun runs
+test files in one process. The first file's `afterAll` called `pool.end()`, so every test in
+the second file failed with `Cannot use a pool after calling end on the pool`.
+
+No test closes the shared pool now. `createPool()` sets `allowExitOnIdle: true` so the
+process still exits cleanly.
+
+### Gemini cosine similarities occupy a narrow band, so calibrate
+
+Mapping cosine with `(x + 1) / 2` assumes the value can go negative. Gemini embeddings on
+natural English text do not: across the seeded catalog, real similarities ran 0.544 to
+0.714. That mapping squashed every creator into 0.77 to 0.86, and a Gaming creator scored
+higher than a MarTech one against a recruiting ICP. The component was technically live and
+practically useless.
+
+`normalizeCosine` stretches the band that actually occurs:
+
+```ts
+export const SEMANTIC_FLOOR = 0.45;
+export const SEMANTIC_CEILING = 0.78;
+clamp01((similarity - SEMANTIC_FLOOR) / (SEMANTIC_CEILING - SEMANTIC_FLOOR))
+```
+
+Semantic fit now spans 0.28 to 0.80 across the same catalog and the recruiting creators
+separate cleanly. Re-measure these two constants if the embedding model changes, or if the
+corpus shifts from short bios to full post history.
+
+### The catalog scores every creator in memory
+
+`GET /brand/catalog` selects all listed creators, computes cosine in SQL, then ranks in JS.
+Correct and fast at 14 creators, wrong at 10,000. Postgres also chooses a sequential scan
+at this size, so the HNSW index is built but not yet exercised.
+
+Before the catalog grows past roughly a thousand rows: push the ordering and a `LIMIT` into
+SQL using the `<=>` operator so HNSW is used, then score only the returned page. The
+scoring function already accepts a precomputed `semanticFit` for exactly this reason.
+
+### Headers.entries() drops Set-Cookie, use getSetCookie()
+
+Better Auth returns a web `Response`. Forwarding its headers to Fastify by iterating
+`response.headers.entries()` loses the session cookie: the Fetch spec has `entries()` merge
+or omit `Set-Cookie`, because a merged cookie header is not valid. The result looked like
+Better Auth was not issuing a session at all, and every guarded route returned 401.
+
+`forward()` in `routes/auth-routes.ts` reads `response.headers.getSetCookie()` first, sets
+that array on the reply, then copies the remaining headers while skipping `set-cookie`.
+
+Any future place that bridges a `Response` into Fastify needs the same treatment.
+
+### Better Auth owns its table shape, ask the library rather than guessing
+
+Better Auth 1.7.2 requires `account.issuer`, which older documentation and examples do not
+mention. The Drizzle adapter fails at runtime, not at boot, with:
+
+```
+BetterAuthError: The field "issuer" does not exist in the "account" Drizzle schema.
+```
+
+Do not guess the field list. Print the authoritative one:
+
+```ts
+import { getAuthTables } from 'better-auth/db';
+console.log(getAuthTables(auth.options));
+```
+
+That returns every model, its `modelName`, and each field with type and required flag.
+Align `packages/db/src/schema.ts` to it exactly, then regenerate the migration.
+
+The four tables are `user`, `session`, `account`, `verification`, singular by Better Auth
+convention, which is why they sit next to plural domain tables like `creators` and
+`brands`. That inconsistency is deliberate: matching the library costs nothing, fighting it
+costs a mapping layer.
+
+### Exclusivity is enforced in three places, on purpose
+
+1. `uniqueIndex` on a `citext` email column, so casing cannot create a second account.
+2. A `BEFORE UPDATE` trigger on `"user"` that raises if `account_type` changes.
+3. `accountTypeFor(email)` checked in the route before Better Auth is called at all.
+
+Layer 3 exists so the user gets `409 email_belongs_to_other_account_type` with a message
+naming the right login page, instead of a constraint violation. Layers 1 and 2 exist so a
+bug in layer 3 cannot corrupt data. Do not remove any of them.
 
 ### ScrapeCreators does not return engagement on the profile endpoint
 
