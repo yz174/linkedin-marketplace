@@ -5,6 +5,7 @@ import { desc, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../auth';
+import { session } from '../guards';
 import { fail } from '../http';
 import { toCard } from './catalog-shape';
 
@@ -47,7 +48,7 @@ export function creatorRoutes(instance: FastifyInstance) {
     { schema: { body: SaveCreatorProfile, response: { 200: CreatorCard } } },
     async (request, reply) => {
       const body = request.body;
-      const userId = request.session!.userId;
+      const userId = session(request).userId;
 
       const snapshot = await freshSnapshot(body.profileUrl, Number.POSITIVE_INFINITY);
       if (!snapshot) {
@@ -87,7 +88,7 @@ export function creatorRoutes(instance: FastifyInstance) {
     const [row] = await db
       .select()
       .from(creators)
-      .where(eq(creators.userId, request.session!.userId))
+      .where(eq(creators.userId, session(request).userId))
       .limit(1);
     if (!row) return fail(reply, 404, 'not_found', 'No creator profile yet.');
     return toCard(row);

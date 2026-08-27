@@ -1,10 +1,11 @@
 import { CatalogQuery, CatalogResponse, DEFAULT_WEIGHTS } from '@lm/contracts';
 import { brands, creators } from '@lm/db';
-import { rankCreators } from '@lm/match';
+import { normalizeCosine, rankCreators } from '@lm/match';
 import { eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../auth';
+import { session } from '../guards';
 import { fail } from '../http';
 import { existingWorkspace } from './brand-routes';
 import { toCard } from './catalog-shape';
@@ -16,7 +17,7 @@ export function catalogRoutes(instance: FastifyInstance) {
     '/catalog',
     { schema: { querystring: CatalogQuery, response: { 200: CatalogResponse } } },
     async (request, reply) => {
-      const workspaceId = await existingWorkspace(request.session!.userId);
+      const workspaceId = await existingWorkspace(session(request).userId);
       if (!workspaceId) return fail(reply, 404, 'not_found', 'Finish onboarding first.');
 
       const [brand] = await db.select().from(brands).where(eq(brands.workspaceId, workspaceId)).limit(1);
@@ -48,7 +49,7 @@ export function catalogRoutes(instance: FastifyInstance) {
             acceptedCount: r.creator.acceptedCount,
             deliveredCount: r.creator.deliveredCount,
             openSlots: r.creator.openSlots,
-            semanticFit: r.similarity === null ? undefined : clamp01((r.similarity + 1) / 2)
+            semanticFit: r.similarity === null ? undefined : normalizeCosine(r.similarity)
           }
         })),
         weights
@@ -69,8 +70,4 @@ export function catalogRoutes(instance: FastifyInstance) {
 
 function toVectorLiteral(values: number[]) {
   return `[${values.join(',')}]`;
-}
-
-function clamp01(n: number) {
-  return Math.min(1, Math.max(0, n));
 }

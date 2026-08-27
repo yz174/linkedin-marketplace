@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { db } from '../auth';
+import { session } from '../guards';
 import { fail } from '../http';
 
 export function brandRoutes(instance: FastifyInstance) {
@@ -39,7 +40,7 @@ export function brandRoutes(instance: FastifyInstance) {
     { schema: { body: SaveBrandProfile, response: { 200: BrandProfile } } },
     async (request) => {
       const { companyName, productUrl, icp } = request.body;
-      const userId = request.session!.userId;
+      const userId = session(request).userId;
 
       const embedding = await embedQuery([icp.summary, ...icp.points].join('\n'));
       const workspaceId = await workspaceFor(userId, companyName);
@@ -89,7 +90,7 @@ export function brandRoutes(instance: FastifyInstance) {
   );
 
   app.get('/profile', async (request, reply) => {
-    const workspaceId = await existingWorkspace(request.session!.userId);
+    const workspaceId = await existingWorkspace(session(request).userId);
     if (!workspaceId) return fail(reply, 404, 'not_found', 'No brand profile yet.');
 
     const [row] = await db.select().from(brands).where(eq(brands.workspaceId, workspaceId)).limit(1);

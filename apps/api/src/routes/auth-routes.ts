@@ -69,10 +69,8 @@ export async function forward(reply: import('fastify').FastifyReply, response: R
   const cookies = response.headers.getSetCookie();
   if (cookies.length > 0) reply.header('set-cookie', cookies);
 
-  for (const [key, value] of response.headers.entries()) {
-    if (key.toLowerCase() === 'set-cookie') continue;
-    reply.header(key, value);
-  }
+  const contentType = response.headers.get('content-type');
+  if (contentType) reply.header('content-type', contentType);
 
   const text = await response.text();
   return text ? reply.send(JSON.parse(text)) : reply.send();
