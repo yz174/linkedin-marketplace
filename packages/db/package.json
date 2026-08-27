@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "bun run src/migrate.ts",
@@ -12,7 +14,8 @@
   "dependencies": {
     "@lm/contracts": "workspace:*",
     "drizzle-orm": "^0.38.3",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "@lm/ai": "workspace:*"
   },
   "devDependencies": {
     "@types/pg": "^8.11.10",

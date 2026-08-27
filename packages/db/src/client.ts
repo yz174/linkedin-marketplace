@@ -17,7 +17,7 @@ function upgradeDeprecatedSslMode(url: string) {
 }
 
 export function createPool() {
-  return new pg.Pool({ connectionString: connectionString(), max: 10 });
+  return new pg.Pool({ connectionString: connectionString(), max: 10, allowExitOnIdle: true });
 }
 
 export function createDb(pool: pg.Pool) {
