@@ -24,6 +24,7 @@ import { messageRoutes } from './routes/message-routes';
 import { redirectRoutes } from './routes/redirect-routes';
 import { brandWalletRoutes, creatorWalletRoutes } from './routes/wallet-routes';
 import { creatorRoutes } from './routes/creator-routes';
+import { invitePreviewRoute, workspaceRoutes } from './routes/workspace-routes';
 
 export function buildApp(
   broker: Broker<Message> = new InProcessBroker(),
@@ -96,10 +97,12 @@ export function buildApp(
   app.register(
     async (brand) => {
       authRoutes(brand, 'brand');
+      invitePreviewRoute(brand);
       brand.register(async (guarded) => {
         guarded.addHook('preHandler', requireRole('brand'));
         guarded.get('/me', async (request) => request.session);
         brandRoutes(guarded);
+        workspaceRoutes(guarded);
         catalogRoutes(guarded);
         campaignRoutes(guarded);
         collabRoutes(guarded, 'brand', bus);

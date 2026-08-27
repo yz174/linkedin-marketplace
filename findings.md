@@ -12,10 +12,12 @@ request log. This file holds the state of the code.
 
 Last updated: 2026-08-28
 
-Right now: Phases 0 to 4 are done. Phase 5 has not begun.
+Right now: Phases 0 to 5 are all done.
 
-`bun test` is 183 passing, 110 of them against live Neon. Both typechecks clean.
-`bun run dev` starts the API on 3001 and the web app on 3000. Fifteen web routes build.
+`bun test` is 203 passing across 20 files, most against live Neon. Both typechecks clean.
+`bun run dev` starts the API on 3001 and the web app on 3000. Nineteen web routes build.
+
+Phase 5 shipped before Phase 4 landed on this branch, since it does not depend on money.
 
 Design direction is settled: **Imperial Blue `#021F94` on White Convolvulus `#F5F2F3`**,
 ID Grotesk for the interface and Times for page titles, card-and-sidebar product layout.
@@ -30,7 +32,7 @@ rejected. Do not read it as current. `design-lab/imperial/` is the approved pair
 | 2 | Campaigns, collaborations, tracked links | done |
 | 3 | Messenger over WebSocket, SSE status stream | done |
 | 4 | Mocked ledger, escrow, analytics | done |
-| 5 | Workspaces and invites | not started |
+| 5 | Workspaces and invites | done |
 
 ### Phase 0 detail
 
@@ -145,16 +147,40 @@ Top-up and withdrawal move no real money and never touch a payment provider.
 | Creator payouts page | done, verified live | `apps/web/src/app/creator/(app)/payouts/` |
 | Creator rotation bundles | **not started** | n/a |
 
-### Phase 5
+### Phase 5 detail
 
-Not started. Scope is under what is left.
+Workspaces, invites, and member roles. All done.
 
-`bun test` is 183 passing, 110 of them against the live Neon database. `bun run typecheck` is
-clean across both the root and the web app. `bun run dev` starts the API on 3001 and the web
-app on 3000. `bun run db:seed` loads 14 creators with real Gemini embeddings.
+| Item | Status | Files |
+|---|---|---|
+| Workspace contracts and role predicates | done | `packages/contracts/src/workspace.ts` |
+| `workspace_invites` table | done in `schema.ts`, live in Neon, migration file blocked | `packages/db/src/schema.ts` |
+| Signed expiring invite token | done, 7 day TTL | `apps/api/src/invite-token.ts` |
+| Team, invite, revoke, role, remove, accept routes | done, 20 tests | `apps/api/src/routes/workspace-routes.ts` |
+| Unauthenticated invite preview | done | `apps/api/src/routes/workspace-routes.ts` |
+| Role gate on the workspace ICP | done | `apps/api/src/routes/brand-routes.ts` |
+| Settings page with workspace, members, invites | done | `apps/web/src/app/brand/(app)/settings/` |
+| Invite acceptance page | done | `apps/web/src/app/brand/invite/[token]/` |
+| Sidebar shows the real workspace name and your role | done | `apps/web/src/app/brand/(app)/layout.tsx` |
+| `next` carried through login and signup | done | `apps/web/src/lib/landing.ts` |
 
-Use `127.0.0.1`, not `localhost`, when curling either server on this machine. `localhost`
-resolves to IPv6 here and nothing binds `::1`.
+Per-workspace filtering was already enforced before this phase started. Every brand query
+runs through `membershipFor`, and `messaging/service.ts` joins `workspace_members` directly.
+Phase 5 added a test that proves it rather than new filtering code: a joined member reads the
+owner's campaigns, and a removed member gets a 404.
+
+What each role can do:
+
+| | owner | admin | member |
+|---|---|---|---|
+| Campaigns, catalog, collaborations, messenger | yes | yes | yes |
+| Invite and revoke | yes | yes | no |
+| Change the workspace ICP | yes | yes | no |
+| Change roles, remove people | yes | no | no |
+
+There is exactly one owner per workspace, created at onboarding. An invite can only carry
+`admin` or `member`, a CHECK constraint refuses `owner`, and the owner cannot demote or
+remove themselves. So the owner seat can never be vacated.
 
 ### What is left
 
@@ -167,11 +193,6 @@ The single list of unbuilt work. Update it here, not in six places.
 | Creator rotation bundles | Book 5 to 8 creators with staggered dates in one action. Needs the billing layer underneath it, which now exists. |
 | Impressions and attributed signups | No data source. See the analytics note in `docs/superpowers/specs/2026-08-28-phase-4-money-layer-design.md`. Cost per lead needs a conversion endpoint the brand calls from their own signup handler. |
 
-**Phase 5, not started**
-
-`workspace_invites`, member roles in the UI, and per-workspace filtering enforced on every
-brand query. `workspace_id` is already on every brand-scoped table.
-
 **Web pages that are linked but do not exist**
 
 Every one of these is a live 404 reachable from a sidebar.
@@ -179,12 +200,13 @@ Every one of these is a live 404 reachable from a sidebar.
 | Route | Side |
 |---|---|
 | `/brand/dashboard` | brand |
-| `/brand/settings`, `/brand/help` | brand |
+| `/brand/help` | brand |
 | `/creator/assignments` | creator |
 | `/creator/performance` | creator |
 | `/creator/settings`, `/creator/help` | creator |
 
 `/brand/billing`, `/brand/analytics`, and `/creator/payouts` shipped with Phase 4.
+`/brand/settings` shipped with Phase 5.
 
 **Accepted features not yet built**
 
@@ -195,7 +217,6 @@ one list answers "what is left".
 |---|---|
 | Voice-matched draft co-pilot from the creator's post corpus | 3 |
 | Creator rotation bundles, 5 to 8 with staggered dates | 4 |
-| Brand workspaces with member invites | 5 |
 | Compare tray, pin up to 4 creators | 1, deferred |
 
 **Deferred by decision, not oversight**
@@ -207,6 +228,8 @@ one list answers "what is left".
 | ID Grotesk licence and woff2 files | Must be purchased and dropped into `apps/web/public/fonts/`, which does not exist yet. Inter is the fallback until then. |
 | Creator supply acquisition | A launch problem, not a build problem. |
 | A second API process | Ruled out 2026-08-28 by Ujjwal. One process, `InProcessBroker`, no message bus. |
+| One workspace per user | A brand user belongs to exactly one workspace. Accepting a second invite is refused with `already_in_workspace`. Multi-workspace switching needs a workspace picker in the shell and a scoped session, which nothing in the product asks for yet. |
+| Invite email delivery | There is no mailer in the stack. The inviter copies the link from `/brand/settings` and passes it on. |
 
 ### Blocked
 
@@ -214,6 +237,7 @@ one list answers "what is left".
 |---|---|---|
 | ScrapeCreators credits | 97 of 100 free credits remain. Onboarding one creator costs 1 + `LINKEDIN_ENRICH_POSTS` credits, 6 by default, so about 16 creators before the free tier runs out. | Set `LINKEDIN_ENRICH_POSTS=0`, or buy credits |
 | ID Grotesk rendering | A purchased webfont licence and self-hosted woff2 files | Inter is the fallback in the stack, so layouts hold and nothing shifts when the real face lands |
+| The `workspace_invites` migration file | `_journal.json` registers `0006_woozy_the_enforcers` but neither `0006_woozy_the_enforcers.sql` nor `meta/0006_snapshot.json` is committed, so `db:generate` diffs against snapshot `0005` and `db:migrate` cannot read the tag. | The table is live in Neon and the Drizzle model is in `schema.ts`, so nothing is broken at runtime. Commit the two missing `0006` files, then generate `0007` for `workspace_invites`. |
 | Phase 1 start | Sign-off on the two round-2 mockups | none, this gate is deliberate |
 
 ---
@@ -340,6 +364,15 @@ Populated as things get built. Path plus export name so nobody greps.
 | Document fixtures and the script that wrote them | `packages/ai/fixtures/`, `packages/ai/make-fixtures.ts` | `brief.pdf`, `brief.docx`, `brief.pptx` |
 | Response and publication clock | `apps/api/src/events/expiry.ts` | `sweepExpiries`, `startExpirySweep`, `RESPONSE_WINDOW_MS` |
 | One publish path for status frames | `apps/api/src/events/bus.ts` | `publishCollabChange` |
+| Workspace roles and the two role predicates | `packages/contracts/src/workspace.ts` | `MEMBER_ROLES`, `MemberRole`, `InviteRole`, `canManageTeam`, `canEditIcp` |
+| Team, invite, and preview shapes | `packages/contracts/src/workspace.ts` | `Team`, `WorkspaceMember`, `WorkspaceInvite`, `CreateInvite`, `ChangeRole`, `InvitePreview` |
+| Signed invite token, same HMAC shape as the socket ticket | `apps/api/src/invite-token.ts` | `issueInviteToken`, `readInviteToken`, `INVITE_TTL_MS` |
+| Team read, invite, revoke, role change, remove, accept | `apps/api/src/routes/workspace-routes.ts` | `workspaceRoutes` |
+| Invite preview, mounted before the role guard | `apps/api/src/routes/workspace-routes.ts` | `invitePreviewRoute` |
+| Workspace and role for a user, one query | `apps/api/src/routes/brand-routes.ts` | `membershipFor` |
+| Team panel, members and pending invites | `apps/web/src/components/team-panel.tsx` | `TeamPanel` |
+| Invite acceptance and account switching | `apps/web/src/components/accept-invite.tsx` | `AcceptInvite`, `SignOutToSwitch` |
+| Redirect target validation for `?next=` | `apps/web/src/lib/landing.ts` | `landingFrom` |
 | Status room keys and bus type | `apps/api/src/events/bus.ts` | `StatusBus`, `brandRoom`, `creatorRoom` |
 | SSE status endpoint | `apps/api/src/events/sse.ts` | `statusStream` |
 | Live refresh on a status frame | `apps/web/src/components/live-collabs.tsx` | `LiveCollabs` |
@@ -436,6 +469,19 @@ large teams and we are not one.
 **2026-08-27, Next.js stays on Node.** The single carve-out to the Bun decision. `bun --bun
 next dev` still hits App Router edge cases. Bun installs the deps and runs the script, Next
 spawns its own Node process. Not our framework to debug.
+
+**2026-08-28, invite tokens are signed, not stored.** A `workspace_invites` row carries the
+email, role, and expiry. The link carries `base64url(inviteId.expiresAt).hmac`, the same
+shape as the WebSocket ticket in `messaging/ticket.ts`. Nothing secret is stored, a leaked
+database row is not a usable link, and revoking is a column write rather than a token
+blacklist. Re-inviting the same email updates the pending row through a partial unique index
+on `(workspace_id, email) where accepted_at is null and revoked_at is null`, so a workspace
+can never hold two live invites for one person.
+
+**2026-08-28, one workspace per user.** `membershipFor` takes the first membership row and
+every brand query is built on it. Letting a user join a second workspace would make that
+query ambiguous and require a workspace picker in the shell. Accepting a second invite is
+refused with `already_in_workspace` instead.
 
 **2026-08-27, Fastify over Express.** Zod schemas become route validation and typed handlers
 with no cast. Plugin encapsulation makes it structurally impossible for the brand auth hook

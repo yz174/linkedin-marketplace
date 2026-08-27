@@ -1,4 +1,4 @@
-import { ACCOUNT_TYPES, COLLAB_EVENTS, COLLAB_STATES, SECTORS } from '@lm/contracts';
+import { ACCOUNT_TYPES, COLLAB_EVENTS, COLLAB_STATES, MEMBER_ROLES, SECTORS } from '@lm/contracts';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -32,7 +32,7 @@ const vector = customType<{ data: number[]; driverData: string }>({
 
 export const accountType = pgEnum('account_type', ACCOUNT_TYPES);
 export const sector = pgEnum('sector', SECTORS);
-export const memberRole = pgEnum('member_role', ['owner', 'admin', 'member']);
+export const memberRole = pgEnum('member_role', MEMBER_ROLES);
 export const collabState = pgEnum('collab_state', COLLAB_STATES);
 export const collabEvent = pgEnum('collab_event', COLLAB_EVENTS);
 export const actorKind = pgEnum('actor_kind', ['brand', 'creator', 'system']);
@@ -134,6 +134,30 @@ export const workspaceMembers = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
   },
   (t) => [uniqueIndex('workspace_members_key').on(t.workspaceId, t.userId)]
+);
+
+export const workspaceInvites = pgTable(
+  'workspace_invites',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    email: citext('email').notNull(),
+    role: memberRole('role').notNull().default('member'),
+    invitedBy: text('invited_by').references(() => users.id, { onDelete: 'set null' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+  },
+  (t) => [
+    index('workspace_invites_workspace_idx').on(t.workspaceId, t.createdAt),
+    uniqueIndex('workspace_invites_pending_key')
+      .on(t.workspaceId, t.email)
+      .where(sql`${t.acceptedAt} is null and ${t.revokedAt} is null`),
+    check('workspace_invites_role_not_owner', sql`${t.role} <> 'owner'`)
+  ]
 );
 
 export const brands = pgTable(

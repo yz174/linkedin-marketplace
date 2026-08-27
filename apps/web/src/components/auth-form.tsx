@@ -61,6 +61,7 @@ export function AuthForm({
 
   const other = OTHER_SIDE[side];
   const wrongSide = error?.code === 'email_belongs_to_other_account_type';
+  const carry = `?next=${encodeURIComponent(landing)}`;
 
   return (
     <form className="gate-card" onSubmit={submit}>
@@ -116,11 +117,11 @@ export function AuthForm({
         <p className="gate-foot">
           {mode === 'signup' ? (
             <>
-              Already have one? <Link href={`/${side}/login`}>Sign in</Link>
+              Already have one? <Link href={`/${side}/login${carry}`}>Sign in</Link>
             </>
           ) : (
             <>
-              No account yet? <Link href={`/${side}/signup`}>Create one</Link>
+              No account yet? <Link href={`/${side}/signup${carry}`}>Create one</Link>
             </>
           )}
         </p>

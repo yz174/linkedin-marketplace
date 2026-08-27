@@ -8,3 +8,4 @@ export * from './campaign';
 export * from './collaboration';
 export * from './messaging';
 export * from './events';
+export * from './workspace';
