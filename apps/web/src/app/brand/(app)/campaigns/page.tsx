@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { CampaignForm } from '@/components/campaign-form';
 import { Icon } from '@/components/icon';
+import { LiveCollabs } from '@/components/live-collabs';
 import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { CollabList } from '@/lib/collab';
@@ -47,6 +48,7 @@ export default async function CampaignsPage() {
 
   return (
     <>
+      <LiveCollabs side="brand" />
       <Topbar
         placeholder="Search campaigns"
         right={
