@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { session } from '../guards';
 import { HttpError } from '../http';
 import { currentSeq, historySince, resolveParticipant } from '../messaging/service';
+import { issueTicket } from '../messaging/ticket';
 
 const Query = z.object({
   after: z.coerce.number().int().min(0).default(0),
@@ -30,4 +31,14 @@ export function messageRoutes(instance: FastifyInstance, accountType: 'brand' | 
       return { items: history.items, lastSeq, truncated: history.truncated };
     }
   );
+
+  app.post('/collaborations/:id/ws-ticket', async (request) => {
+    const { id } = request.params as { id: string };
+    const userId = session(request).userId;
+
+    const participant = await resolveParticipant(id, userId, accountType);
+    if (!participant) throw new HttpError(404, 'not_found', 'No such conversation.');
+
+    return issueTicket({ userId, accountType, collaborationId: id });
+  });
 }

@@ -1,4 +1,5 @@
 import websocket from '@fastify/websocket';
+import type { Message } from '@lm/contracts';
 import Fastify, { type FastifyError } from 'fastify';
 import {
   serializerCompiler,
@@ -13,14 +14,22 @@ import { authRoutes, forward, toHeaders } from './routes/auth-routes';
 import { brandRoutes } from './routes/brand-routes';
 import { catalogRoutes } from './routes/catalog-routes';
 import { InProcessBroker, type Broker } from './messaging/broker';
+import type { StatusBus } from './events/bus';
+import { statusStream } from './events/sse';
 import { registerMessageSocket } from './messaging/ws';
 import { campaignRoutes } from './routes/campaign-routes';
 import { collabRoutes } from './routes/collab-routes';
 import { messageRoutes } from './routes/message-routes';
 import { creatorRoutes } from './routes/creator-routes';
 
-export function buildApp(broker: Broker = new InProcessBroker()) {
-  const app = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
+export function buildApp(
+  broker: Broker<Message> = new InProcessBroker(),
+  bus: StatusBus = new InProcessBroker()
+) {
+  const app = Fastify({
+    logger: false,
+    forceCloseConnections: true
+  }).withTypeProvider<ZodTypeProvider>();
 
   app.register(websocket, {
     options: { maxPayload: 64 * 1024 }
@@ -77,7 +86,8 @@ export function buildApp(broker: Broker = new InProcessBroker()) {
         brandRoutes(guarded);
         catalogRoutes(guarded);
         campaignRoutes(guarded);
-        collabRoutes(guarded, 'brand');
+        collabRoutes(guarded, 'brand', bus);
+        statusStream(guarded, 'brand', bus);
         messageRoutes(guarded, 'brand');
       });
     },
@@ -91,7 +101,8 @@ export function buildApp(broker: Broker = new InProcessBroker()) {
         guarded.addHook('preHandler', requireRole('creator'));
         guarded.get('/me', async (request) => request.session);
         creatorRoutes(guarded);
-        collabRoutes(guarded, 'creator');
+        collabRoutes(guarded, 'creator', bus);
+        statusStream(guarded, 'creator', bus);
         messageRoutes(guarded, 'creator');
       });
     },
@@ -104,6 +115,7 @@ export function buildApp(broker: Broker = new InProcessBroker()) {
 
   app.addHook('onClose', async () => {
     await broker.close();
+    await bus.close();
   });
 
   return app;

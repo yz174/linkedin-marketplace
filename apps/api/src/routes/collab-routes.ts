@@ -1,4 +1,4 @@
-import { CollabEvent, type Actor } from '@lm/contracts';
+import { CollabEvent, type Actor, type CollabState } from '@lm/contracts';
 import { allowedEvents, transition, type Collaboration } from '@lm/collab';
 import { brands, campaigns, collaborationEvents, collaborations, creators } from '@lm/db';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { db } from '../auth';
+import { brandRoom, creatorRoom, type StatusBus } from '../events/bus';
 import { session } from '../guards';
 import { HttpError } from '../http';
 import { existingWorkspace } from './brand-routes';
@@ -24,8 +25,32 @@ const Invite = z.object({
   publishBy: z.string().datetime().optional()
 });
 
-export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'brand' | 'creator'>) {
+export function collabRoutes(
+  instance: FastifyInstance,
+  actor: Extract<Actor, 'brand' | 'creator'>,
+  bus: StatusBus
+) {
   const app = instance.withTypeProvider<ZodTypeProvider>();
+
+  const announce = async (
+    row: CollabRow,
+    brandId: string,
+    change: { from: CollabState; to: CollabState; actor: Actor }
+  ) => {
+    const frame = {
+      t: 'collab_changed' as const,
+      collaborationId: row.id,
+      reference: row.reference,
+      from: change.from,
+      to: change.to,
+      actor: change.actor,
+      feeMinor: row.feeMinor,
+      counterFeeMinor: row.counterFeeMinor,
+      updatedAt: row.updatedAt.toISOString()
+    };
+    await bus.publish(brandRoom(brandId), frame);
+    await bus.publish(creatorRoom(row.creatorId), frame);
+  };
 
   app.get('/collaborations', async (request) => {
     const rows = await visibleTo(actor, session(request).userId);
@@ -81,6 +106,8 @@ export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'b
         toState: 'invited',
         payload: { created: true, feeMinor: request.body.feeMinor }
       });
+
+      await announce(row!, brand.id, { from: 'invited', to: 'invited', actor: 'brand' });
 
       return row;
     });
@@ -158,6 +185,18 @@ export function collabRoutes(instance: FastifyInstance, actor: Extract<Actor, 'b
       return row!;
     });
 
+    const [campaign] = await db
+      .select({ brandId: campaigns.brandId })
+      .from(campaigns)
+      .where(eq(campaigns.id, current.campaignId))
+      .limit(1);
+
+    await announce(updated, campaign!.brandId, {
+      from: current.state,
+      to: outcome.to,
+      actor
+    });
+
     return { collaboration: updated, effects: outcome.effects };
   });
 
@@ -205,7 +244,7 @@ async function titlesFor(ids: string[]) {
   return new Map(rows.map((r) => [r.id, r.title]));
 }
 
-async function brandFor(userId: string) {
+export async function brandFor(userId: string) {
   const workspaceId = await existingWorkspace(userId);
   if (!workspaceId) throw new HttpError(404, 'not_found', 'Finish onboarding first.');
 
@@ -214,7 +253,7 @@ async function brandFor(userId: string) {
   return brand;
 }
 
-async function creatorFor(userId: string) {
+export async function creatorFor(userId: string) {
   const [creator] = await db.select().from(creators).where(eq(creators.userId, userId)).limit(1);
   if (!creator) throw new HttpError(404, 'not_found', 'Finish onboarding first.');
   return creator;
