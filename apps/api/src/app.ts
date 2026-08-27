@@ -1,3 +1,4 @@
+import websocket from '@fastify/websocket';
 import Fastify, { type FastifyError } from 'fastify';
 import {
   serializerCompiler,
@@ -11,12 +12,19 @@ import { HttpError } from './http';
 import { authRoutes, forward, toHeaders } from './routes/auth-routes';
 import { brandRoutes } from './routes/brand-routes';
 import { catalogRoutes } from './routes/catalog-routes';
+import { InProcessBroker, type Broker } from './messaging/broker';
+import { registerMessageSocket } from './messaging/ws';
 import { campaignRoutes } from './routes/campaign-routes';
 import { collabRoutes } from './routes/collab-routes';
+import { messageRoutes } from './routes/message-routes';
 import { creatorRoutes } from './routes/creator-routes';
 
-export function buildApp() {
+export function buildApp(broker: Broker = new InProcessBroker()) {
   const app = Fastify({ logger: false }).withTypeProvider<ZodTypeProvider>();
+
+  app.register(websocket, {
+    options: { maxPayload: 64 * 1024 }
+  });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -70,6 +78,7 @@ export function buildApp() {
         catalogRoutes(guarded);
         campaignRoutes(guarded);
         collabRoutes(guarded, 'brand');
+        messageRoutes(guarded, 'brand');
       });
     },
     { prefix: '/brand' }
@@ -83,10 +92,19 @@ export function buildApp() {
         guarded.get('/me', async (request) => request.session);
         creatorRoutes(guarded);
         collabRoutes(guarded, 'creator');
+        messageRoutes(guarded, 'creator');
       });
     },
     { prefix: '/creator' }
   );
+
+  app.register(async (sockets) => {
+    registerMessageSocket(sockets, broker);
+  });
+
+  app.addHook('onClose', async () => {
+    await broker.close();
+  });
 
   return app;
 }

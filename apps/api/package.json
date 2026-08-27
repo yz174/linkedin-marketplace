@@ -17,6 +17,10 @@
     "fastify-type-provider-zod": "^4.0.2",
     "zod": "^3.24.1",
     "drizzle-orm": "^0.38.3",
-    "@lm/collab": "workspace:*"
+    "@lm/collab": "workspace:*",
+    "@fastify/websocket": "^11.0.2"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13"
   }
 }
