@@ -7,12 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && bun run typecheck:web",
     "test": "bun test packages",
     "db:generate": "cd packages/db && bun run generate",
     "db:migrate": "bun run packages/db/src/migrate.ts",
     "db:seed": "bun run packages/db/src/seed.ts",
-    "dev:api": "bun --watch apps/api/src/server.ts"
+    "dev:api": "bun --watch apps/api/src/server.ts",
+    "dev:web": "cd apps/web && bun run dev",
+    "dev": "bun run dev:api & bun run dev:web",
+    "typecheck:web": "cd apps/web && tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest",
