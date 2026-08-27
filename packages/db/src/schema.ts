@@ -252,6 +252,7 @@ export const collaborations = pgTable(
     draft: text('draft'),
     publishBy: timestamp('publish_by', { withTimezone: true }),
     invitedAt: timestamp('invited_at', { withTimezone: true }).notNull().defaultNow(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
     verifiedAt: timestamp('verified_at', { withTimezone: true }),
     respondedAt: timestamp('responded_at', { withTimezone: true }),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
