@@ -75,7 +75,7 @@ const RULES: readonly Rule[] = [
 
   { from: 'draft_approved', event: 'schedule', actors: ['creator'], to: 'scheduled' },
   { from: 'scheduled', event: 'publish', actors: ['creator'], to: 'published' },
-  { from: 'published', event: 'verify', actors: ['system'], to: 'verified', effects: ['count_delivery'] },
+  { from: 'published', event: 'verify', actors: ['brand', 'system'], to: 'verified', effects: ['count_delivery'] },
   { from: 'verified', event: 'pay', actors: ['system'], to: 'paid', effects: ['release_escrow'] }
 ];
 
