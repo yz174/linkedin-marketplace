@@ -61,6 +61,16 @@ async function invite(title: string, publishBy?: Date) {
   return created.json<{ id: string }>().id;
 }
 
+async function fundWallet(amountMinor: number) {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/brand/wallet/topup',
+    payload: { amountMinor } as never,
+    headers: { cookie: brandCookie, 'idempotency-key': `fund-${stamp}-${amountMinor}` }
+  });
+  expect(response.statusCode).toBe(200);
+}
+
 const stateOf = async (id: string) => {
   const [row] = await db.select().from(collaborations).where(eq(collaborations.id, id)).limit(1);
   return row!.state;
@@ -118,6 +128,8 @@ beforeAll(async () => {
     })
     .returning();
   creatorId = creator!.id;
+
+  await fundWallet(1_000_000);
 }, TIMEOUT);
 
 afterAll(async () => {

@@ -42,6 +42,7 @@ export const ERROR_CODES = [
   'not_found',
   'thin_page',
   'illegal_transition',
+  'insufficient_funds',
   'unsupported_document',
   'empty_document',
   'file_too_large',

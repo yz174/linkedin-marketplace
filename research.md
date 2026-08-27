@@ -27,6 +27,8 @@ Last updated: 2026-08-28
 | Creator supply acquisition strategy | not started | before launch, not before build |
 | WebSocket transport, auth on upgrade, resume | done, 24 tests | if the protocol version changes |
 | SSE for status and analytics | done, 4 tests, cookie auth through the /bff rewrite | if the frame set grows |
+| Double-entry ledger and escrow under Postgres | done, 11 tests including two invariants | if a second currency appears |
+| Click ingestion on tracked links | done, 6 tests | if bot filtering becomes necessary |
 | Workspace invites and member roles | done, 20 tests, links signed with the socket ticket scheme | if a second workspace per user is ever wanted |
 
 Open questions:
@@ -387,8 +389,8 @@ verified. `partial` names what is missing. Update this column when a feature lan
 | 2026-08-27 | Ujjwal | Collaborations tab tracking every status from booking to payment | The core operational surface | 2 | shipped |
 | 2026-08-27 | Ujjwal | Messenger over WebSocket | Negotiation happens in conversation | 3 | shipped |
 | 2026-08-27 | Ujjwal | SSE for status changes and analytics | Live updates without polling | 3 | shipped |
-| 2026-08-27 | Ujjwal | Billing tab, mocked | Fund flow without a payment integration | 4 | accepted |
-| 2026-08-27 | Ujjwal | Creator earnings page | Supply-side transparency | 4 | accepted |
+| 2026-08-27 | Ujjwal | Billing tab, mocked | Fund flow without a payment integration | 4 | shipped |
+| 2026-08-27 | Ujjwal | Creator earnings page | Supply-side transparency | 4 | shipped |
 | 2026-08-27 | Ujjwal | Brand workspaces with member invites | Marketing teams are not one person | 5 | shipped |
 | 2026-08-27 | Claude | Explainable match score, reason chips plus weight sliders | Naano shows a number with no reason. Cheapest real differentiator. | 1 | shipped, sliders not interactive |
 | 2026-08-27 | Claude | Delivery reliability score public on every creator card | Naano's own 30.4% delivery rate under EUR 200 goes unaddressed in their product | 2 | shipped |
@@ -397,4 +399,4 @@ verified. `partial` names what is missing. Update this column when a feature lan
 | 2026-08-27 | Claude | Voice-matched draft co-pilot from the creator's own post corpus | Writing sponsored posts is the biggest supply-side friction, and we already store the corpus for matching | 3 | accepted |
 | 2026-08-27 | Claude | Creator rotation bundles, book 5-8 with staggered dates | Naano's playbook says rotation works, their product makes you assemble it by hand | 4 | accepted |
 | 2026-08-27 | Claude | Compare tray, pin up to 4 creators side by side | Shortlisting across a large catalog | 1 | not started |
-| 2026-08-27 | Claude | Accept-to-publish clock with auto-refund on expiry | Enforces the reliability score instead of only displaying it | 2 | shipped, refund recorded as an effect until Phase 4 performs it |
+| 2026-08-27 | Claude | Accept-to-publish clock with auto-refund on expiry | Enforces the reliability score instead of only displaying it | 2 | shipped, refund performed by the ledger |

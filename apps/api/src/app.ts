@@ -11,6 +11,7 @@ import { env } from './env';
 import { requireRole } from './guards';
 import { HttpError } from './http';
 import { authRoutes, forward, toHeaders } from './routes/auth-routes';
+import { analyticsRoutes } from './routes/analytics-routes';
 import { brandRoutes } from './routes/brand-routes';
 import { catalogRoutes } from './routes/catalog-routes';
 import { InProcessBroker, type Broker } from './messaging/broker';
@@ -20,6 +21,8 @@ import { registerMessageSocket } from './messaging/ws';
 import { campaignRoutes } from './routes/campaign-routes';
 import { collabRoutes } from './routes/collab-routes';
 import { messageRoutes } from './routes/message-routes';
+import { redirectRoutes } from './routes/redirect-routes';
+import { brandWalletRoutes, creatorWalletRoutes } from './routes/wallet-routes';
 import { creatorRoutes } from './routes/creator-routes';
 import { invitePreviewRoute, workspaceRoutes } from './routes/workspace-routes';
 
@@ -73,6 +76,8 @@ export function buildApp(
 
   app.get('/health', async () => ({ ok: true }));
 
+  redirectRoutes(app);
+
   app.route({
     method: ['GET', 'POST'],
     url: '/api/auth/*',
@@ -103,6 +108,8 @@ export function buildApp(
         collabRoutes(guarded, 'brand', bus);
         statusStream(guarded, 'brand', bus);
         messageRoutes(guarded, 'brand');
+        brandWalletRoutes(guarded);
+        analyticsRoutes(guarded);
       });
     },
     { prefix: '/brand' }
@@ -118,6 +125,7 @@ export function buildApp(
         collabRoutes(guarded, 'creator', bus);
         statusStream(guarded, 'creator', bus);
         messageRoutes(guarded, 'creator');
+        creatorWalletRoutes(guarded);
       });
     },
     { prefix: '/creator' }
