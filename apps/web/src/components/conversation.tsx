@@ -3,21 +3,7 @@
 import { MAX_BODY_CHARS } from '@lm/contracts';
 import { useEffect, useRef, useState } from 'react';
 import { initials } from '@/lib/format';
-import { useConversation, type Status } from '@/lib/use-conversation';
-
-const STATUS_COPY: Record<Status, string> = {
-  connecting: 'Connecting',
-  live: 'Live',
-  reconnecting: 'Reconnecting',
-  offline: 'Offline, still retrying'
-};
-
-const STATUS_TONE: Record<Status, string> = {
-  connecting: '',
-  live: 'ok',
-  reconnecting: 'warn',
-  offline: 'down'
-};
+import { useConversation } from '@/lib/use-conversation';
 
 export function Conversation({
   collaborationId,
@@ -33,7 +19,7 @@ export function Conversation({
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'end' });
+    endRef.current?.scrollIntoView({ block: 'nearest' });
   }, [messages.length, pending.length]);
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -54,10 +40,6 @@ export function Conversation({
             {messages.length} message{messages.length === 1 ? '' : 's'}
           </div>
         </div>
-        <span className={`pill ${STATUS_TONE[status]}`} aria-live="polite">
-          <span className="d" />
-          {STATUS_COPY[status]}
-        </span>
       </header>
 
       <div className="convo-body">

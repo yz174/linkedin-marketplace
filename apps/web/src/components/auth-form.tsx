@@ -14,11 +14,15 @@ const OTHER_SIDE: Record<'brand' | 'creator', 'brand' | 'creator'> = {
 export function AuthForm({
   side,
   mode,
-  landing
+  landing,
+  onAuthed,
+  onSwitchMode
 }: {
   side: 'brand' | 'creator';
   mode: Mode;
   landing: string;
+  onAuthed?: () => void;
+  onSwitchMode?: (mode: Mode) => void;
 }) {
   const router = useRouter();
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -44,6 +48,10 @@ export function AuthForm({
     });
 
     if (response.ok) {
+      if (onAuthed) {
+        onAuthed();
+        return;
+      }
       router.push(landing);
       router.refresh();
       return;
@@ -65,7 +73,6 @@ export function AuthForm({
 
   return (
     <form className="gate-card" onSubmit={submit}>
-      <div className="gate-mark">L</div>
       <h1>{mode === 'signup' ? `Create a ${side} account` : `Sign in as a ${side}`}</h1>
       <p className="lede">
         {side === 'brand'
@@ -117,11 +124,25 @@ export function AuthForm({
         <p className="gate-foot">
           {mode === 'signup' ? (
             <>
-              Already have one? <Link href={`/${side}/login${carry}`}>Sign in</Link>
+              Already have one?{' '}
+              {onSwitchMode ? (
+                <button type="button" onClick={() => onSwitchMode('login')}>
+                  Sign in
+                </button>
+              ) : (
+                <Link href={`/${side}/login${carry}`}>Sign in</Link>
+              )}
             </>
           ) : (
             <>
-              No account yet? <Link href={`/${side}/signup${carry}`}>Create one</Link>
+              No account yet?{' '}
+              {onSwitchMode ? (
+                <button type="button" onClick={() => onSwitchMode('signup')}>
+                  Create one
+                </button>
+              ) : (
+                <Link href={`/${side}/signup${carry}`}>Create one</Link>
+              )}
             </>
           )}
         </p>

@@ -1,10 +1,69 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Icon } from '@/components/icon';
 import { money } from '@/lib/format';
 
 type Campaign = { id: string; title: string };
+
+function CampaignSelect({
+  value,
+  options,
+  onChange
+}: {
+  value: string;
+  options: Campaign[];
+  onChange: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const current = options.find((o) => o.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  return (
+    <div className="dropdown" ref={ref}>
+      <button
+        type="button"
+        className="dropdown-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span>{current?.title ?? 'Pick a campaign'}</span>
+        <Icon name="down" size="sm" />
+      </button>
+      {open ? (
+        <div className="dropdown-menu" role="listbox">
+          {options.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              role="option"
+              aria-selected={o.id === value}
+              className="dropdown-item"
+              onClick={() => {
+                onChange(o.id);
+                setOpen(false);
+              }}
+            >
+              {o.title}
+              {o.id === value ? <Icon name="check" size="sm" /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function CommissionButton({
   creatorId,
@@ -69,16 +128,14 @@ export function CommissionButton({
 
   return (
     <div className="commission">
-      {error ? <span className="t-xs" style={{ color: 'var(--down-fg)' }}>{error}</span> : null}
+      {error ? (
+        <span className="t-xs" style={{ color: 'var(--down-fg)' }}>
+          {error}
+        </span>
+      ) : null}
       <label className="field" style={{ margin: 0 }}>
         <span>Campaign</span>
-        <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
-          {campaigns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
+        <CampaignSelect value={campaignId} options={campaigns} onChange={setCampaignId} />
       </label>
       <label className="field" style={{ margin: 0 }}>
         <span>Fee, euros</span>

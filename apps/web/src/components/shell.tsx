@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Icon, type IconName } from './icon';
 
 type NavItem = { href: string; label: string; icon: IconName; count?: number };
@@ -11,7 +11,7 @@ export const BRAND_NAV: NavGroup[] = [
   {
     heading: 'General',
     items: [
-      { href: '/brand/dashboard', label: 'Overview', icon: 'home' },
+      { href: '/brand/dashboard', label: 'Dashboard', icon: 'home' },
       { href: '/brand/campaigns', label: 'Campaigns', icon: 'file' },
       { href: '/brand/catalog', label: 'Catalog', icon: 'users' },
       { href: '/brand/collaborations', label: 'Collaborations', icon: 'inbox' },
@@ -20,17 +20,11 @@ export const BRAND_NAV: NavGroup[] = [
   },
   {
     heading: 'Tools',
-    items: [
-      { href: '/brand/analytics', label: 'Analytics', icon: 'chart' },
-      { href: '/brand/billing', label: 'Billing', icon: 'card' }
-    ]
+    items: [{ href: '/brand/billing', label: 'Billing', icon: 'card' }]
   },
   {
     heading: 'Support',
-    items: [
-      { href: '/brand/settings', label: 'Settings', icon: 'gear' },
-      { href: '/brand/help', label: 'Help', icon: 'help' }
-    ]
+    items: [{ href: '/brand/settings', label: 'Settings', icon: 'gear' }]
   }
 ];
 
@@ -40,23 +34,16 @@ export const CREATOR_NAV: NavGroup[] = [
     items: [
       { href: '/creator/card', label: 'Your card', icon: 'card' },
       { href: '/creator/offers', label: 'Offers', icon: 'inbox' },
-      { href: '/creator/assignments', label: 'Assignments', icon: 'file' },
       { href: '/creator/messenger', label: 'Messenger', icon: 'chat' }
     ]
   },
   {
     heading: 'Earnings',
-    items: [
-      { href: '/creator/payouts', label: 'Payouts', icon: 'wallet' },
-      { href: '/creator/performance', label: 'Performance', icon: 'chart' }
-    ]
+    items: [{ href: '/creator/payouts', label: 'Payouts', icon: 'wallet' }]
   },
   {
     heading: 'Support',
-    items: [
-      { href: '/creator/settings', label: 'Settings', icon: 'gear' },
-      { href: '/creator/help', label: 'Help', icon: 'help' }
-    ]
+    items: [{ href: '/creator/settings', label: 'Settings', icon: 'gear' }]
   }
 ];
 
@@ -64,14 +51,25 @@ export function Sidebar({
   groups,
   name,
   sub,
-  glyph
+  glyph,
+  side,
+  account
 }: {
   groups: NavGroup[];
   name: string;
   sub: string;
   glyph: string;
+  side: 'brand' | 'creator';
+  account: { label: string; initials: string };
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    await fetch(`/bff/${side}/logout`, { method: 'POST', credentials: 'include' });
+    router.push('/');
+    router.refresh();
+  }
 
   return (
     <aside className="side">
@@ -84,36 +82,37 @@ export function Sidebar({
         </span>
       </div>
 
-      {groups.map((group) => (
-        <div className="navgroup" key={group.heading}>
-          <h4>{group.heading}</h4>
-          {group.items.map((item) => (
-            <Link
-              key={item.href}
-              className="nav"
-              href={item.href}
-              aria-current={pathname === item.href ? 'page' : undefined}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-              {item.count === undefined ? null : <span className="count">{item.count}</span>}
-            </Link>
-          ))}
-        </div>
-      ))}
-    </aside>
-  );
-}
+      <nav className="side-nav">
+        {groups.map((group) => (
+          <div className="navgroup" key={group.heading}>
+            <h4>{group.heading}</h4>
+            {group.items.map((item) => (
+              <Link
+                key={item.href}
+                className="nav"
+                href={item.href}
+                aria-current={pathname === item.href ? 'page' : undefined}
+              >
+                <Icon name={item.icon} />
+                {item.label}
+                {item.count === undefined ? null : <span className="count">{item.count}</span>}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
 
-export function Topbar({ placeholder, right }: { placeholder: string; right?: React.ReactNode }) {
-  return (
-    <header className="topbar">
-      <label className="search">
-        <Icon name="search" />
-        <input placeholder={placeholder} />
-        <span className="kbd">⌘K</span>
-      </label>
-      <div className="topbar-right">{right}</div>
-    </header>
+      <div className="side-foot">
+        <div className="account">
+          <span className="av sm">{account.initials}</span>
+          <span className="account-id" title={account.label}>
+            {account.label}
+          </span>
+          <button type="button" className="account-out" onClick={signOut}>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </aside>
   );
 }

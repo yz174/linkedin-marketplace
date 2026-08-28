@@ -129,7 +129,7 @@ export function BrandOnboarding() {
           {error ? <div className="alert">{error}</div> : null}
 
           <section className="onb-block">
-            <h2>What {companyName || 'you'} do</h2>
+            <h2>{companyName ? `What ${companyName} does` : 'What you do'}</h2>
             <textarea
               className="area"
               rows={3}
@@ -145,7 +145,7 @@ export function BrandOnboarding() {
                 <span className="icp-n">{String(index + 1).padStart(2, '0')}</span>
                 <textarea
                   className="area"
-                  rows={2}
+                  rows={3}
                   value={point}
                   onChange={(e) =>
                     setPoints((current) => current.map((p, i) => (i === index ? e.target.value : p)))
