@@ -1,5 +1,4 @@
-import { AuthForm } from '@/components/auth-form';
-import { landingFrom } from '@/lib/landing';
+import { redirect } from 'next/navigation';
 
 export default async function BrandSignup({
   searchParams
@@ -7,10 +6,5 @@ export default async function BrandSignup({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-
-  return (
-    <main className="gate">
-      <AuthForm side="brand" mode="signup" landing={landingFrom(next, '/brand/catalog')} />
-    </main>
-  );
+  redirect(`/?role=brand&mode=signup${next ? `&next=${encodeURIComponent(next)}` : ''}`);
 }

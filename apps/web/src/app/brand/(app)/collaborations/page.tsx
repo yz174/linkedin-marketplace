@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation';
 import { CollabActions } from '@/components/collab-actions';
 import { Icon } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
-import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { CollabList, NEEDS_YOU, STATE_LABEL, STATE_TONE, type CollabRow } from '@/lib/collab';
 import { initials, money } from '@/lib/format';
@@ -33,21 +32,9 @@ export default async function CollaborationsPage() {
   return (
     <>
       <LiveCollabs side="brand" />
-      <Topbar
-        placeholder="Search assignments, creators, campaigns"
-        right={
-          <>
-            <Link className="btn ghost sm" href="/brand/catalog">
-              <Icon name="users" size="sm" />
-              Catalog
-            </Link>
-            <span className="av">MK</span>
-          </>
-        }
-      />
 
       <div className="page">
-        <div className="main-in" style={{ maxWidth: 1000 }}>
+        <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Assignments</h1>
@@ -58,7 +45,7 @@ export default async function CollaborationsPage() {
             </div>
           </div>
 
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="stats">
             <Stat icon="inbox" label="In production" value={String(open.length)} foot="not yet closed" />
             <Stat icon="bell" label="Waiting on you" value={String(waiting.length)} foot="needs a decision" />
             <Stat icon="wallet" label="Committed" value={money(committed)} foot="across open assignments" />
@@ -66,18 +53,15 @@ export default async function CollaborationsPage() {
           </div>
 
           {waiting.length > 0 ? (
-            <section className="card" style={{ marginBottom: 'var(--s3)' }}>
-              <div className="card-head">
-                <h3>Needs a decision</h3>
-                <div className="acts">
-                  <span className="pill warn">
-                    <span className="d" />
-                    {waiting.length}
-                  </span>
-                </div>
-              </div>
-              <div className="card-sep" />
-              <div className="card-body" style={{ paddingTop: 0 }}>
+            <section className="collab-section">
+              <h2 className="collab-section-head">
+                Needs a decision
+                <span className="pill warn">
+                  <span className="d" />
+                  {waiting.length}
+                </span>
+              </h2>
+              <div className="collab-list">
                 {waiting.map((row) => (
                   <Row key={row.id} row={row} />
                 ))}
@@ -85,30 +69,29 @@ export default async function CollaborationsPage() {
             </section>
           ) : null}
 
-          <section className="card">
-            <div className="card-head">
-              <h3>All assignments</h3>
-              <div className="acts">
-                <span className="t-xs muted">{data.items.length} total</span>
+          <section className="collab-section">
+            <h2 className="collab-section-head">
+              All assignments
+              <span className="muted">{data.items.length} total</span>
+            </h2>
+            {data.items.length === 0 ? (
+              <div className="empty" style={{ border: 0 }}>
+                <h3>No assignments yet</h3>
+                <p>
+                  Invite a creator from the catalog. The fee you offer is held in escrow the moment
+                  they accept.
+                </p>
+                <Link className="btn" href="/brand/catalog">
+                  Open the catalog
+                </Link>
               </div>
-            </div>
-            <div className="card-sep" />
-            <div className="card-body" style={{ paddingTop: 0 }}>
-              {data.items.length === 0 ? (
-                <div className="empty" style={{ border: 0 }}>
-                  <h3>No assignments yet</h3>
-                  <p>
-                    Invite a creator from the catalog. The fee you offer is held in escrow the moment
-                    they accept.
-                  </p>
-                  <Link className="btn" href="/brand/catalog">
-                    Open the catalog
-                  </Link>
-                </div>
-              ) : (
-                data.items.map((row) => <Row key={row.id} row={row} />)
-              )}
-            </div>
+            ) : (
+              <div className="collab-list">
+                {data.items.map((row) => (
+                  <Row key={row.id} row={row} />
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

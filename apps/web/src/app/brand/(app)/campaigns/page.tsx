@@ -3,9 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { CampaignForm } from '@/components/campaign-form';
-import { Icon } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
-import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { CollabList } from '@/lib/collab';
 import { money } from '@/lib/format';
@@ -49,21 +47,9 @@ export default async function CampaignsPage() {
   return (
     <>
       <LiveCollabs side="brand" />
-      <Topbar
-        placeholder="Search campaigns"
-        right={
-          <>
-            <Link className="btn ghost sm" href="/brand/collaborations">
-              <Icon name="inbox" size="sm" />
-              Assignments
-            </Link>
-            <span className="av">MK</span>
-          </>
-        }
-      />
 
       <div className="page">
-        <div className="main-in" style={{ maxWidth: 860 }}>
+        <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Campaigns</h1>
@@ -86,61 +72,83 @@ export default async function CampaignsPage() {
               </p>
             </div>
           ) : (
-            campaigns.items.map((campaign) => {
-              const booked = collabs.items.filter((c) => c.campaignTitle === campaign.title);
-              const committed = booked.reduce((sum, c) => sum + (c.counterFeeMinor ?? c.feeMinor), 0);
+            <div className="camp-list">
+              {campaigns.items.map((campaign) => {
+                const booked = collabs.items.filter((c) => c.campaignTitle === campaign.title);
+                const committed = booked.reduce(
+                  (sum, c) => sum + (c.counterFeeMinor ?? c.feeMinor),
+                  0
+                );
 
-              return (
-                <article className="card" key={campaign.id} style={{ marginBottom: 'var(--s3)' }}>
-                  <div className="card-head">
-                    <h3>{campaign.title}</h3>
-                    <div className="acts">
-                      <span className="tag grey">{campaign.source}</span>
-                      <span className="t-xs muted">
-                        {new Date(campaign.createdAt).toLocaleDateString('en-IE')}
+                return (
+                  <article className="camp-card" key={campaign.id}>
+                    <div className="camp-card-head">
+                      <div>
+                        <h3>{campaign.title}</h3>
+                        <span className="camp-card-meta">
+                          <span className="camp-src">{campaign.source}</span> ·{' '}
+                          {new Date(campaign.createdAt).toLocaleDateString('en-IE', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      <span className="camp-booked">
+                        <b>{booked.length}</b>
+                        <span>{booked.length === 1 ? 'creator booked' : 'creators booked'}</span>
                       </span>
                     </div>
-                  </div>
-                  <div className="card-sep" />
-                  <div className="card-body" style={{ paddingTop: 'var(--s4)' }}>
-                    <p className="t-sm" style={{ lineHeight: 1.55 }}>
-                      {campaign.objective}
-                    </p>
 
-                    <div className="collab-meta" style={{ marginTop: 'var(--s4)' }}>
+                    <p className="camp-objective">{campaign.objective}</p>
+
+                    <div className="camp-facts">
                       <span>
                         <span className="k">Budget band</span>
                         <span className="v">
-                          {money(campaign.budgetMinMinor)} to {money(campaign.budgetMaxMinor)}
+                          {money(campaign.budgetMinMinor)} – {money(campaign.budgetMaxMinor)}
                         </span>
-                      </span>
-                      <span>
-                        <span className="k">Contributors</span>
-                        <span className="v">{booked.length}</span>
                       </span>
                       <span>
                         <span className="k">Committed</span>
                         <span className="v">{money(committed)}</span>
                       </span>
+                      <span>
+                        <span className="k">Deliverable</span>
+                        <span className="v" style={{ fontWeight: 500, fontSize: 13 }}>
+                          {campaign.deliverable}
+                        </span>
+                      </span>
                     </div>
 
-                    {campaign.doNot.length > 0 ? (
-                      <>
-                        <div className="card-sep" style={{ margin: 'var(--s4) 0' }} />
-                        <span className="t-lbl">Do not</span>
-                        <ul style={{ marginTop: 'var(--s2)' }}>
-                          {campaign.doNot.map((line) => (
-                            <li key={line} className="t-sm muted" style={{ padding: '3px 0' }}>
-                              {line}
-                            </li>
-                          ))}
-                        </ul>
-                      </>
+                    {campaign.keyMessages.length > 0 || campaign.doNot.length > 0 ? (
+                      <div className="camp-guides">
+                        {campaign.keyMessages.length > 0 ? (
+                          <div className="camp-guide">
+                            <h4>Key messages</h4>
+                            <ol>
+                              {campaign.keyMessages.map((line) => (
+                                <li key={line}>{line}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        ) : null}
+                        {campaign.doNot.length > 0 ? (
+                          <div className="camp-guide dont">
+                            <h4>Won&rsquo;t do</h4>
+                            <ul>
+                              {campaign.doNot.map((line) => (
+                                <li key={line}>{line}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
                     ) : null}
-                  </div>
-                </article>
-              );
-            })
+                  </article>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

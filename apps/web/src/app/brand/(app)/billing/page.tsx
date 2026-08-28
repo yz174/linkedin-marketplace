@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
-import { Topbar } from '@/components/shell';
 import { TopUp } from '@/components/wallet-actions';
 import { ApiFailure, request } from '@/lib/api';
 import { money } from '@/lib/format';
@@ -34,10 +33,9 @@ export default async function BillingPage() {
   return (
     <>
       <LiveCollabs side="brand" />
-      <Topbar placeholder="Search transactions" right={<span className="av">MK</span>} />
 
       <div className="page">
-        <div className="main-in" style={{ maxWidth: 1000 }}>
+        <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Billing</h1>
@@ -48,7 +46,7 @@ export default async function BillingPage() {
             </div>
           </div>
 
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="stats">
             <Stat
               icon="wallet"
               label="Available"

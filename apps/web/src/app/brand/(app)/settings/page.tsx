@@ -1,7 +1,6 @@
 import { Team } from '@lm/contracts';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Topbar } from '@/components/shell';
 import { TeamPanel } from '@/components/team-panel';
 import { ApiFailure, request } from '@/lib/api';
 
@@ -21,11 +20,8 @@ export default async function SettingsPage() {
   }
 
   return (
-    <>
-      <Topbar placeholder="Search settings" right={<span className="av">MK</span>} />
-
-      <div className="page">
-        <div className="main-in" style={{ maxWidth: 860 }}>
+    <div className="page">
+      <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Settings</h1>
@@ -37,8 +33,7 @@ export default async function SettingsPage() {
           </div>
 
           <TeamPanel team={team} />
-        </div>
       </div>
-    </>
+    </div>
   );
 }
