@@ -14,7 +14,7 @@
     "db:seed": "bun run packages/db/src/seed.ts",
     "dev:api": "bun --watch apps/api/src/server.ts",
     "dev:web": "cd apps/web && bun run dev",
-    "dev": "bun run dev:api & bun run dev:web",
+    "dev": "bun run dev:api; bun run dev:web",
     "typecheck:web": "cd apps/web && tsc --noEmit"
   },
   "devDependencies": {
