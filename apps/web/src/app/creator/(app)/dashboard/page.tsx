@@ -8,7 +8,6 @@ import { CreatorFaceCard } from '@/components/catalog-card';
 import { Icon, type IconName } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
 import { ApiFailure, request } from '@/lib/api';
-import { CollabList, STATE_LABEL } from '@/lib/collab';
 import { money, percent } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -26,14 +25,11 @@ export default async function CreatorDashboardPage() {
     throw error;
   }
 
-  const [wallet, collabs] = await Promise.all([
-    request('/creator/wallet', CreatorWallet, { cookie }).catch(() => ({
-      balanceMinor: 0,
-      pendingMinor: 0,
-      entries: [] as CreatorWallet['entries']
-    })),
-    request('/creator/collaborations', CollabList, { cookie }).catch(() => ({ items: [] }))
-  ]);
+  const wallet = await request('/creator/wallet', CreatorWallet, { cookie }).catch(() => ({
+    balanceMinor: 0,
+    pendingMinor: 0,
+    entries: [] as CreatorWallet['entries']
+  }));
 
   const earnedToDate = wallet.entries
     .filter((e) => e.kind === 'release')
@@ -53,12 +49,6 @@ export default async function CreatorDashboardPage() {
     .sort((a, b) => a[1].key - b[1].key)
     .map(([label, v]) => ({ label, value: v.total }));
 
-  const pipeline = new Map<string, number>();
-  for (const c of collabs.items) {
-    const label = STATE_LABEL[c.state] ?? c.state;
-    pipeline.set(label, (pipeline.get(label) ?? 0) + 1);
-  }
-  const pipelineData = [...pipeline.entries()].map(([label, value]) => ({ label, value }));
 
   const deliveryPct =
     card.acceptedCount === 0 ? 0 : (card.deliveredCount / card.acceptedCount) * 100;
@@ -84,43 +74,7 @@ export default async function CreatorDashboardPage() {
             </div>
           </div>
 
-          <div className="stats">
-            <Stat icon="check" label="Earned to date" value={money(earnedToDate)} foot="across every settled post" />
-            <Stat icon="wallet" label="Ready to withdraw" value={money(wallet.balanceMinor)} foot="settled and yours" />
-            <Stat icon="inbox" label="In escrow" value={money(wallet.pendingMinor)} foot="committed, not yet verified" />
-            <Stat
-              icon="chart"
-              label="Delivery rate"
-              value={card.deliveryRate === null ? '—' : percent(card.deliveryRate, 0)}
-              foot={`${card.deliveredCount} of ${card.acceptedCount} accepted`}
-            />
-          </div>
-
-          <div className="chart-row">
-            <BarChart
-              title="Earnings by month"
-              data={earningsData}
-              format="currency"
-            />
-            <BarChart title="Pipeline" data={pipelineData} />
-            <figure className="chart">
-              <figcaption className="chart-title">Delivery</figcaption>
-              <div style={{ padding: 'var(--s4) 0 var(--s2)' }}>
-                <Gauge
-                  orientation="arc"
-                  value={deliveryPct}
-                  centerValue={card.acceptedCount === 0 ? '—' : `${Math.round(deliveryPct)}%`}
-                  label={`${card.deliveredCount} of ${card.acceptedCount} delivered`}
-                />
-              </div>
-            </figure>
-          </div>
-
-          <section className="collab-section" style={{ marginTop: 'var(--s5)' }}>
-            <h2 className="collab-section-head">Your card</h2>
-            <p className="t-sm muted" style={{ marginBottom: 'var(--s4)', maxWidth: '60ch' }}>
-              This is what a brand sees before they book you. Every number came from your own posts.
-            </p>
+          <div className="creator-top">
             <div className="catalog-grid creator-face">
               <CreatorFaceCard
                 name={card.name}
@@ -134,7 +88,35 @@ export default async function CreatorDashboardPage() {
                 ]}
               />
             </div>
-          </section>
+            <div className="creator-top-right">
+              <div className="creator-top-stats">
+                <Stat icon="check" label="Earned to date" value={money(earnedToDate)} foot="across every settled post" />
+                <Stat icon="wallet" label="Ready to withdraw" value={money(wallet.balanceMinor)} foot="settled and yours" />
+                <Stat icon="inbox" label="In escrow" value={money(wallet.pendingMinor)} foot="committed, not yet verified" />
+                <Stat
+                  icon="chart"
+                  label="Delivery rate"
+                  value={card.deliveryRate === null ? '—' : percent(card.deliveryRate, 0)}
+                  foot={`${card.deliveredCount} of ${card.acceptedCount} accepted`}
+                />
+              </div>
+
+              <div className="chart-row">
+                <BarChart title="Earnings by month" data={earningsData} format="currency" />
+                <figure className="chart">
+                  <figcaption className="chart-title">Delivery</figcaption>
+                  <div style={{ padding: 'var(--s4) 0 var(--s2)' }}>
+                    <Gauge
+                      orientation="arc"
+                      value={deliveryPct}
+                      centerValue={card.acceptedCount === 0 ? '—' : `${Math.round(deliveryPct)}%`}
+                      label={`${card.deliveredCount} of ${card.acceptedCount} delivered`}
+                    />
+                  </div>
+                </figure>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
