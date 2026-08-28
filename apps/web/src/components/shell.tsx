@@ -32,7 +32,7 @@ export const CREATOR_NAV: NavGroup[] = [
   {
     heading: 'General',
     items: [
-      { href: '/creator/card', label: 'Your card', icon: 'card' },
+      { href: '/creator/dashboard', label: 'Dashboard', icon: 'home' },
       { href: '/creator/offers', label: 'Offers', icon: 'inbox' },
       { href: '/creator/messenger', label: 'Messenger', icon: 'chat' }
     ]
@@ -40,10 +40,6 @@ export const CREATOR_NAV: NavGroup[] = [
   {
     heading: 'Earnings',
     items: [{ href: '/creator/payouts', label: 'Payouts', icon: 'wallet' }]
-  },
-  {
-    heading: 'Support',
-    items: [{ href: '/creator/settings', label: 'Settings', icon: 'gear' }]
   }
 ];
 

@@ -18,7 +18,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     team = await request('/brand/team', Team, { cookie });
   } catch (error) {
     if (error instanceof ApiFailure && error.status === 401) redirect('/?role=brand');
-    if (error instanceof ApiFailure && error.status === 403) redirect('/creator/card');
+    if (error instanceof ApiFailure && error.status === 403) redirect('/creator/dashboard');
     if (error instanceof ApiFailure && error.status === 404) redirect('/?role=brand');
     throw error;
   }

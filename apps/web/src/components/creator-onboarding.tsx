@@ -91,7 +91,7 @@ export function CreatorOnboarding() {
     });
 
     if (response.ok) {
-      router.push('/creator/card');
+      router.push('/creator/dashboard');
       router.refresh();
       return;
     }

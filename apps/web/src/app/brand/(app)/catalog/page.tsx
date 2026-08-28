@@ -29,7 +29,7 @@ export default async function CatalogPage({
     catalog = await request(`/brand/catalog?view=${view}&limit=24`, CatalogResponse, { cookie });
   } catch (error) {
     if (error instanceof ApiFailure && error.status === 401) redirect('/brand/login');
-    if (error instanceof ApiFailure && error.status === 403) redirect('/creator/card');
+    if (error instanceof ApiFailure && error.status === 403) redirect('/creator/dashboard');
     if (error instanceof ApiFailure && error.status === 404) redirect('/brand/onboarding');
     throw error;
   }
