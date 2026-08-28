@@ -20,7 +20,18 @@ export type CompleteResult<T> = {
 
 type Message = { role: 'system' | 'user' | 'assistant'; content: string };
 
-async function callModel(messages: Message[], opts: { schemaName: string; jsonSchema: Record<string, unknown>; maxTokens: number }) {
+// Free OpenRouter models advertise json_schema support inconsistently and some
+// return prose when handed a response_format they cannot honour. Instead the
+// schema goes in the prompt and every response is validated (and repaired once).
+function schemaDirective(jsonSchema: Record<string, unknown>) {
+  return [
+    'Return only a single JSON object that satisfies this JSON Schema.',
+    'No prose, no explanation, no markdown fences.',
+    JSON.stringify(jsonSchema)
+  ].join('\n');
+}
+
+async function callModel(messages: Message[], opts: { maxTokens: number }) {
   const config = env();
   const response = await fetch(ENDPOINT, {
     method: 'POST',
@@ -32,10 +43,6 @@ async function callModel(messages: Message[], opts: { schemaName: string; jsonSc
       model: config.OPENROUTER_MODEL,
       models: config.OPENROUTER_FALLBACKS,
       max_tokens: opts.maxTokens,
-      response_format: {
-        type: 'json_schema',
-        json_schema: { name: opts.schemaName, strict: true, schema: opts.jsonSchema }
-      },
       messages
     })
   });
@@ -59,21 +66,24 @@ async function callModel(messages: Message[], opts: { schemaName: string; jsonSc
 function parseJson(content: string) {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced?.[1]?.trim() ?? content.trim();
-  return JSON.parse(candidate) as unknown;
+  try {
+    return JSON.parse(candidate) as unknown;
+  } catch {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start === -1 || end <= start) throw new Error('no JSON object in model output');
+    return JSON.parse(candidate.slice(start, end + 1)) as unknown;
+  }
 }
 
 export async function complete<T>(opts: CompleteOptions<T>): Promise<CompleteResult<T>> {
   const maxTokens = opts.maxTokens ?? 1500;
   const messages: Message[] = [
-    { role: 'system', content: opts.system },
+    { role: 'system', content: `${opts.system}\n\n${schemaDirective(opts.jsonSchema)}` },
     { role: 'user', content: opts.user }
   ];
 
-  const first = await callModel(messages, {
-    schemaName: opts.schemaName,
-    jsonSchema: opts.jsonSchema,
-    maxTokens
-  });
+  const first = await callModel(messages, { maxTokens });
 
   const attempt = opts.schema.safeParse(safeParseJson(first.content));
   if (attempt.success) return { data: attempt.data, model: first.model, repaired: false };
@@ -89,11 +99,7 @@ export async function complete<T>(opts: CompleteOptions<T>): Promise<CompleteRes
     }
   ];
 
-  const second = await callModel(repairMessages, {
-    schemaName: opts.schemaName,
-    jsonSchema: opts.jsonSchema,
-    maxTokens
-  });
+  const second = await callModel(repairMessages, { maxTokens });
 
   const repaired = opts.schema.safeParse(safeParseJson(second.content));
   if (!repaired.success) {

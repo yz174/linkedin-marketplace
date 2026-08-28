@@ -39,6 +39,7 @@ export const ERROR_CODES = [
   'insufficient_role',
   'invalid_invite',
   'already_in_workspace',
+  'already_invited',
   'not_found',
   'thin_page',
   'illegal_transition',

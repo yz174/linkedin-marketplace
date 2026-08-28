@@ -74,6 +74,20 @@ export function collabRoutes(
         .limit(1);
       if (!creator) throw new HttpError(404, 'not_found', 'No such creator.');
 
+      const [existing] = await db
+        .select({ id: collaborations.id })
+        .from(collaborations)
+        .where(
+          and(
+            eq(collaborations.campaignId, campaign.id),
+            eq(collaborations.creatorId, creator.id)
+          )
+        )
+        .limit(1);
+      if (existing) {
+        throw new HttpError(409, 'already_invited', `${creator.name} is already on this campaign.`);
+      }
+
       const [row] = await db
         .insert(collaborations)
         .values({

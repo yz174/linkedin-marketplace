@@ -2,10 +2,10 @@ import { z } from 'zod';
 
 const Env = z.object({
   OPENROUTER_API_KEY: z.string().min(1),
-  OPENROUTER_MODEL: z.string().min(1).default('google/gemini-2.5-flash'),
+  OPENROUTER_MODEL: z.string().min(1).default('minimax/minimax-m3:free'),
   OPENROUTER_FALLBACKS: z
     .string()
-    .default('anthropic/claude-3.5-haiku,openai/gpt-4o-mini')
+    .default('minimax/minimax-m3,google/gemini-2.5-flash')
     .transform((s) => s.split(',').map((m) => m.trim()).filter(Boolean)),
   GEMINI_API_KEY: z.string().min(1),
   SCRAPECREATORS_API_KEY: z.string().min(1).optional(),
