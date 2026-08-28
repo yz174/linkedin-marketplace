@@ -9,11 +9,12 @@ services:
     runtime: docker
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
-    plan: starter # "free" works but sleeps after 15 min idle; background sweeps stop while asleep
-    region: singapore # match your Neon region (ap-southeast-1)
+    plan: free # sleeps after 15 min idle; background sweeps pause while asleep
+    region: singapore # free tier is Oregon, Frankfurt, or Singapore
     healthCheckPath: /health
     autoDeploy: true
-    preDeployCommand: bun run packages/db/src/migrate.ts # runs inside the built image; needs DATABASE_URL
+    # preDeployCommand needs a paid plan. On free, run migrations from your
+    # machine once: DATABASE_URL='<neon-url>' bun run packages/db/src/migrate.ts
     envVars:
       - key: AUTH_SECRET
         generateValue: true
