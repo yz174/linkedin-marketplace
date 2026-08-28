@@ -76,7 +76,7 @@ export default async function PayoutsPage() {
               <h3>Withdraw</h3>
             </div>
             <div className="card-sep" />
-            <div className="card-body">
+            <div className="card-body" style={{ paddingTop: 'var(--s4)' }}>
               <Withdraw balanceMinor={wallet.balanceMinor} />
             </div>
           </section>

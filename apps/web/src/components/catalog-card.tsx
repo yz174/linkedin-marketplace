@@ -207,10 +207,14 @@ function AvatarArt() {
 export function CreatorFaceCard({
   name,
   topics,
+  headline,
+  stats,
   actions
 }: {
   name: string;
   topics: string[];
+  headline?: string;
+  stats?: { label: string; value: string }[];
   actions?: React.ReactNode;
 }) {
   return (
@@ -223,6 +227,17 @@ export function CreatorFaceCard({
       </div>
       <div className="card__title">{name}</div>
       <div className="card__subtitle">{topics.join(' · ')}</div>
+      {headline ? <p className="card__headline">{headline}</p> : null}
+      {stats && stats.length > 0 ? (
+        <dl className="card__stats">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <dt>{s.label}</dt>
+              <dd>{s.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       {actions ? <div className="card__wrapper">{actions}</div> : null}
     </div>
   );

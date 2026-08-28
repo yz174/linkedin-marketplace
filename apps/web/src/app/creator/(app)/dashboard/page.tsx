@@ -116,35 +116,23 @@ export default async function CreatorDashboardPage() {
             </figure>
           </div>
 
-          <section className="collab-section">
+          <section className="collab-section" style={{ marginTop: 'var(--s5)' }}>
             <h2 className="collab-section-head">Your card</h2>
-            <div className="creator-dash-card">
-              <div className="catalog-grid" style={{ flex: 'none' }}>
-                <CreatorFaceCard name={card.name} topics={card.topics} />
-              </div>
-              <div className="creator-dash-facts">
-                <p className="t-sm" style={{ color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                  {card.headline || 'No headline yet.'}
-                </p>
-                <dl>
-                  <div>
-                    <dt>Followers</dt>
-                    <dd>{card.followers.toLocaleString('en-IE')}</dd>
-                  </div>
-                  <div>
-                    <dt>Engagement</dt>
-                    <dd>{percent(card.engagementRate, 2)}</dd>
-                  </div>
-                  <div>
-                    <dt>Posts / week</dt>
-                    <dd>{card.postsPerWeek}</dd>
-                  </div>
-                  <div>
-                    <dt>Your rate</dt>
-                    <dd>{money(card.ratePerPostMinor)}</dd>
-                  </div>
-                </dl>
-              </div>
+            <p className="t-sm muted" style={{ marginBottom: 'var(--s4)', maxWidth: '60ch' }}>
+              This is what a brand sees before they book you. Every number came from your own posts.
+            </p>
+            <div className="catalog-grid creator-face">
+              <CreatorFaceCard
+                name={card.name}
+                topics={card.topics}
+                headline={card.headline || undefined}
+                stats={[
+                  { label: 'Followers', value: card.followers.toLocaleString('en-IE') },
+                  { label: 'Engagement', value: percent(card.engagementRate, 2) },
+                  { label: 'Posts / week', value: String(card.postsPerWeek) },
+                  { label: 'Your rate', value: money(card.ratePerPostMinor) }
+                ]}
+              />
             </div>
           </section>
         </div>
