@@ -91,13 +91,13 @@ One email is one account, one role. A `lock_account_type` database trigger makes
 
 `packages/match/src/score.ts` scores each creator against a brand's ICP:
 
-| Component | Default weight | Source |
+| Component (`MATCH_COMPONENTS`) | Default weight | Source |
 |---|---|---|
-| Topic overlap | 40% | shared sectors, capped at 3 per side |
-| Voice similarity | 30% | cosine of the ICP embedding vs the creator fingerprint embedding |
-| Audience fit | 15% | engagement rate and follower band |
-| Delivery record | 10% | published / accepted, with a neutral prior for thin records |
-| Availability | 5% | open slots |
+| `tagAffinity` | 40% | shared sectors, capped at 3 per side |
+| `semanticFit` | 30% | cosine of the ICP embedding vs the creator fingerprint embedding |
+| `audienceFit` | 15% | engagement rate and follower band |
+| `reliability` | 10% | published / accepted, with a neutral prior for thin records |
+| `availability` | 5% | open slots |
 
 The function is pure and returns the components alongside the number, so the catalog can show
 why a creator ranked where they did.
