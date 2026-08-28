@@ -1,0 +1,33 @@
+# Render blueprint for the API. Import from the dashboard (New > Blueprint) or
+# let Render auto-detect this file on the connected repo.
+#
+# The API runs on Bun via a Dockerfile so the runtime version is pinned and the
+# build is reproducible.
+services:
+  - type: web
+    name: lm-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter # "free" works but sleeps after 15 min idle; background sweeps stop while asleep
+    region: singapore # match your Neon region (ap-southeast-1)
+    healthCheckPath: /health
+    autoDeploy: true
+    preDeployCommand: bun run packages/db/src/migrate.ts # runs inside the built image; needs DATABASE_URL
+    envVars:
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false # the Neon pooled connection string
+      - key: API_URL
+        sync: false # this service's own URL, e.g. https://lm-api.onrender.com
+      - key: WEB_ORIGIN
+        sync: false # the Vercel URL, e.g. https://lm-web.vercel.app
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SCRAPECREATORS_API_KEY
+        sync: false
+      - key: LINKEDIN_PROVIDER
+        value: scrapecreators # or "manual" to skip the scraper
