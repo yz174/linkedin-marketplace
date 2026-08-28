@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
-import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { count, initials, money, percent } from '@/lib/format';
 
@@ -24,22 +23,6 @@ export default async function CreatorCardPage() {
 
   return (
     <>
-      <Topbar
-        placeholder="Search offers, brands, payouts"
-        right={
-          <>
-            <button className="btn ghost sm">
-              <Icon name="export" size="sm" />
-              Statements
-            </button>
-            <button className="iconbtn">
-              <Icon name="bell" size="lg" />
-            </button>
-            <span className="av">{initials(card.name)}</span>
-          </>
-        }
-      />
-
       <div className="page">
         <div className="main-in railed">
           <div>

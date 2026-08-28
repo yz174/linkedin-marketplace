@@ -1,9 +1,10 @@
-import { AuthForm } from '@/components/auth-form';
+import { redirect } from 'next/navigation';
 
-export default function CreatorLogin() {
-  return (
-    <main className="gate">
-      <AuthForm side="creator" mode="login" landing="/creator/card" />
-    </main>
-  );
+export default async function CreatorLogin({
+  searchParams
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  redirect(`/?role=creator${next ? `&next=${encodeURIComponent(next)}` : ''}`);
 }

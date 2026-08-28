@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
-import { Topbar } from '@/components/shell';
 import { Withdraw } from '@/components/wallet-actions';
 import { ApiFailure, request } from '@/lib/api';
 import { money } from '@/lib/format';
@@ -38,10 +37,9 @@ export default async function PayoutsPage() {
   return (
     <>
       <LiveCollabs side="creator" />
-      <Topbar placeholder="Search payouts" right={<span className="av">C</span>} />
 
       <div className="page">
-        <div className="main-in" style={{ maxWidth: 900 }}>
+        <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Payouts</h1>
@@ -52,7 +50,7 @@ export default async function PayoutsPage() {
             </div>
           </div>
 
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="stats">
             <Stat
               icon="wallet"
               label="Ready to withdraw"

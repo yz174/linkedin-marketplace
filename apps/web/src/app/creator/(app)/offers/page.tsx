@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation';
 import { Icon } from '@/components/icon';
 import { LiveCollabs } from '@/components/live-collabs';
 import { CollabActions } from '@/components/collab-actions';
-import { Topbar } from '@/components/shell';
 import { ApiFailure, request } from '@/lib/api';
 import { CollabList } from '@/lib/collab';
 import { money } from '@/lib/format';
@@ -60,21 +59,9 @@ export default async function OffersPage() {
   return (
     <>
       <LiveCollabs side="creator" />
-      <Topbar
-        placeholder="Search offers, brands, payouts"
-        right={
-          <>
-            <Link className="btn ghost sm" href="/creator/card">
-              <Icon name="card" size="sm" />
-              Your card
-            </Link>
-            <span className="av">C</span>
-          </>
-        }
-      />
 
       <div className="page">
-        <div className="main-in" style={{ maxWidth: 900 }}>
+        <div className="main-in">
           <div className="pagehead">
             <div>
               <h1>Offers</h1>
@@ -85,7 +72,7 @@ export default async function OffersPage() {
             </div>
           </div>
 
-          <div className="stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div className="stats">
             <div className="stat">
               <div className="top">
                 <Icon name="inbox" size="sm" />
